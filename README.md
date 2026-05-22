@@ -1,5 +1,10 @@
 # graffeo
 
+[![Build Status][gh-actions-badge]][gh-actions]
+[![][tag-badge]][tag]
+
+[![Project Logo][logo]][logo-large]
+
 *An Erlang graph library — `digraph` and then some.*
 
 graffeo wraps Erlang's two stdlib graph modules, `digraph` and `digraph_utils`,
@@ -57,9 +62,18 @@ slice is built.
 ## Build
 
 ```shell
-$ rebar3 compile
+rebar3 compile
 ```
 
 ## License
 
 Apache License 2.0. See [LICENSE.md](LICENSE.md).
+
+[//]: ---Named-Links---
+
+[logo]: priv/images/logo.png
+[logo-large]: priv/images/logo-large.png
+[gh-actions-badge]: https://github.com/erlsci/graffeo/workflows/ci/badge.svg
+[gh-actions]: https://github.com/erlsci/graffeo/actions?query=workflow%3Aci
+[tag-badge]: https://img.shields.io/github/tag/erlsci/graffeo.svg
+[tag]: https://github.com/erlsci/graffeo/tags
