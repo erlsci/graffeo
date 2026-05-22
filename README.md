@@ -1,0 +1,65 @@
+# graffeo
+
+*An Erlang graph library — `digraph` and then some.*
+
+graffeo wraps Erlang's two stdlib graph modules, `digraph` and `digraph_utils`,
+and carries them the rest of the way toward "batteries included." Where the
+stdlib stops — topological sort, components, reachability, a handful of
+connectivity predicates — graffeo continues: weighted shortest paths,
+composable traversal, richer connectivity, and the assorted algorithms one ends
+up hand-rolling on real graph projects. The benchmark it measures itself
+against is Rust's [petgraph](https://docs.rs/petgraph), which set the recent bar
+for what a graph library should give you out of the box.
+
+## The name
+
+After the San Francisco roaster (Sicilian founder, Little Italy, 1935) — and,
+not by coincidence, a true etymological cognate of *graph*: the surname descends
+from Greek *grapheus* ("scribe"), from *graphein* ("to write / scratch /
+incise"), the same root that gives graph theory its name. A graph library named
+for the word "graph" comes from. The espresso is a bonus.
+
+## The idea
+
+Two design choices shape graffeo.
+
+**One algorithm layer, many backends.** It turns out the stdlib's algorithms
+were written functional-first: they touch storage only through a thin set of
+read accessors and never mutate the graph they traverse. graffeo makes that
+implicit seam explicit as an Erlang *behaviour*, so each algorithm is written
+once and runs over any backend that satisfies the contract. This is the same
+property petgraph gets from its graph traits — one algorithm body, many graph
+types — reached the Erlang way.
+
+**Two tiers, faithful to Erlang.** The standard library already splits the
+world into values (`lists`, `maps`, `sets`) and handles (`ets`, `dets`,
+`digraph`), and graffeo honours that rather than hiding it:
+
+- a **functional tier** — an immutable, map-backed graph that is a true value:
+  copyable, pattern-matchable, and message-passable between processes (the
+  default, and the petgraph-like face); and
+- a **handle tier** — a mutable backend over `digraph`/ETS (and, later, `dets`
+  on disk) for scale and for drop-in transparency. A `digraph` user should be
+  completely at home here, because nothing magic happens underneath.
+
+The algorithms are shared across both tiers, because reading a graph is the
+same whether it is a value or a handle. The difference shows up only where it
+genuinely matters — in how you build and change a graph.
+
+## Status
+
+Early. graffeo is in the design phase: the architecture and scope are written
+down, but the implementation has not begun. The thinking lives in
+[`docs/design/`](docs/design/), starting with the project prospectus and the
+project-definition document. Expect the public API to move as the first vertical
+slice is built.
+
+## Build
+
+```shell
+$ rebar3 compile
+```
+
+## License
+
+Apache License 2.0. See [LICENSE.md](LICENSE.md).
