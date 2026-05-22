@@ -1,5 +1,5 @@
 {application, graffeo, [
-    {description, "An OTP application"},
+    {description, "An Erlang graph library — digraph and then some"},
     {vsn, "0.1.0"},
     {registered, []},
     {mod, {graffeo_app, []}},

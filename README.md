@@ -5,7 +5,7 @@
 
 [![Project Logo][logo]][logo-large]
 
-*An Erlang graph library — `digraph` and then some.*
+*An Erlang graph library — `digraph` and then some*
 
 graffeo wraps Erlang's two stdlib graph modules, `digraph` and `digraph_utils`,
 and carries them the rest of the way toward "batteries included." Where the
