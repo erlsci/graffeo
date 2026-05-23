@@ -44,7 +44,7 @@ users touch.
 
 %% Constructive algorithms
 -export([
-    subgraph/2,
+    subgraph/2, subgraph/3,
     condensation/1
 ]).
 
@@ -357,8 +357,19 @@ and edges where both endpoints are in the list.
 handle the caller must `graffeo_digraph:delete/1`.
 """.
 -spec subgraph(graph(), [vertex()]) -> graph().
-subgraph(#graffeo{backend = B, ref = R} = G, SubVs) ->
-    graffeo_conn:subgraph(G, B, R, SubVs).
+subgraph(G, SubVs) ->
+    subgraph(G, SubVs, []).
+
+-doc """
+Induced subgraph with options.
+
+Options: `{keep_labels, boolean()}` (default `true`),
+`{type, inherit | [d_type()]}` (handle backend only; ignored for value).
+Raises `badarg` on malformed options.
+""".
+-spec subgraph(graph(), [vertex()], list()) -> graph().
+subgraph(#graffeo{backend = B, ref = R} = G, SubVs, Opts) ->
+    graffeo_conn:subgraph(G, B, R, SubVs, Opts).
 
 -doc """
 Condensation: one vertex per strongly connected component.

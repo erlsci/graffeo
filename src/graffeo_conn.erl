@@ -23,7 +23,7 @@ The DFS/forest engine is ported from the stdlib but runs over
     is_tree/3,
     is_arborescence/3,
     arborescence_root/3,
-    subgraph/4,
+    subgraph/4, subgraph/5,
     condensation/4
 ]).
 
@@ -162,7 +162,25 @@ Labels and edge metadata are preserved.
 """.
 -spec subgraph(graffeo:graph(), module(), term(), [graffeo:vertex()]) -> graffeo:graph().
 subgraph(G, B, R, SubVs) ->
-    subgraph_build(G, B, R, SubVs).
+    subgraph(G, B, R, SubVs, []).
+
+-doc """
+Induced subgraph with options.
+
+Options: `{keep_labels, boolean()}` (default `true`),
+`{type, inherit | [d_type()]}` (handle backend only; ignored for value).
+Raises `badarg` on malformed options (faithful to `digraph_utils:subgraph/3`).
+""".
+-spec subgraph(
+    graffeo:graph(),
+    module(),
+    term(),
+    [graffeo:vertex()],
+    [{keep_labels, boolean()} | {type, inherit | list()}]
+) -> graffeo:graph().
+subgraph(G, B, R, SubVs, Opts) ->
+    {KeepLabels} = parse_subgraph_opts(Opts),
+    subgraph_build(G, B, R, SubVs, KeepLabels).
 
 -doc """
 Condensation: one vertex per SCC, labelled with the member list.
@@ -204,13 +222,15 @@ condensation(B, R, G, Vs) ->
         SCPairs
     ).
 
--spec subgraph_build(graffeo:graph(), module(), term(), [graffeo:vertex()]) -> graffeo:graph().
-subgraph_build(G, B, R, SubVs) ->
+-spec subgraph_build(graffeo:graph(), module(), term(), [graffeo:vertex()], boolean()) ->
+    graffeo:graph().
+subgraph_build(G, B, R, SubVs, KeepLabels) ->
     SubSet = sets:from_list(SubVs, [{version, 2}]),
     Result0 = lists:foldl(
         fun(V, Acc) ->
             case B:vertex_label(R, V) of
-                {ok, Label} -> B:build_add_vertex(Acc, V, Label);
+                {ok, Label} when KeepLabels -> B:build_add_vertex(Acc, V, Label);
+                {ok, _} -> B:build_add_vertex(Acc, V);
                 error -> Acc
             end
         end,
@@ -223,13 +243,15 @@ subgraph_build(G, B, R, SubVs) ->
             lists:foldl(
                 fun(N, Acc1) ->
                     case sets:is_element(N, SubSet) of
-                        true ->
+                        true when KeepLabels ->
                             Meta =
                                 case B:edge_meta(R, V, N) of
                                     {ok, M} -> M;
                                     error -> #{}
                                 end,
                             B:build_add_edge(Acc1, V, N, Meta);
+                        true ->
+                            B:build_add_edge(Acc1, V, N, #{});
                         false ->
                             Acc1
                     end
@@ -241,6 +263,21 @@ subgraph_build(G, B, R, SubVs) ->
         Result0,
         SubVs
     ).
+
+-spec parse_subgraph_opts([{keep_labels, boolean()} | {type, inherit | list()}]) -> {boolean()}.
+parse_subgraph_opts(Opts) ->
+    parse_subgraph_opts(Opts, true).
+
+-spec parse_subgraph_opts([{keep_labels, boolean()} | {type, inherit | list()}], boolean()) ->
+    {boolean()}.
+parse_subgraph_opts([], KeepLabels) ->
+    {KeepLabels};
+parse_subgraph_opts([{keep_labels, V} | Rest], _KL) when is_boolean(V) ->
+    parse_subgraph_opts(Rest, V);
+parse_subgraph_opts([{type, V} | Rest], KL) when V =:= inherit; is_list(V) ->
+    parse_subgraph_opts(Rest, KL);
+parse_subgraph_opts(_, _KL) ->
+    erlang:error(badarg).
 
 %%% === Internal: the forest engine ===
 
