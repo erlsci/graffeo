@@ -99,9 +99,7 @@ handle back when you need raw `digraph:*` access.
 **0.1.0 — full stdlib parity, and then some.** graffeo now implements the
 *entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
 every function runs over *both* tiers — the functional map value (default) and
-the `digraph`/ETS handle. All of the following is implemented and tested (eunit
-
-- Common Test + PropEr):
+the `digraph`/ETS handle. All of the following is implemented and tested (eunit, Common Test + PropEr):
 
 **Building & access**
 
