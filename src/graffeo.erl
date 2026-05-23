@@ -42,6 +42,16 @@ users touch.
     top_k_by_degree/2
 ]).
 
+%% Path/cycle queries (ported from digraph)
+-export([
+    get_path/3,
+    get_cycle/2,
+    get_short_path/3,
+    get_short_cycle/2,
+    source_vertices/1,
+    sink_vertices/1
+]).
+
 %% Connectivity / DFS-family (ported from digraph_utils)
 -export([
     components/1,
@@ -328,3 +338,40 @@ is_arborescence(#graffeo{backend = B, ref = R}) ->
 -spec arborescence_root(graph()) -> {yes, vertex()} | no.
 arborescence_root(#graffeo{backend = B, ref = R}) ->
     graffeo_conn:arborescence_root(B, R, B:vertices(R)).
+
+%%% === Path/cycle queries ===
+
+-doc "DFS path from `V1` to `V2`, or `false`.".
+-spec get_path(graph(), vertex(), vertex()) -> [vertex()] | false.
+get_path(#graffeo{backend = B, ref = R}, V1, V2) ->
+    graffeo_path:get_path(B, R, V1, V2).
+
+-doc "A cycle through `V` (DFS), or `false`.".
+-spec get_cycle(graph(), vertex()) -> [vertex()] | false.
+get_cycle(#graffeo{backend = B, ref = R}, V) ->
+    graffeo_path:get_cycle(B, R, V).
+
+-doc """
+Shortest (fewest-edges) path from `V1` to `V2` (BFS), or `false`.
+
+When `V1 =:= V2`, returns the shortest cycle through `V`.
+This is an **unweighted** path — edge weights are ignored.
+""".
+-spec get_short_path(graph(), vertex(), vertex()) -> [vertex()] | false.
+get_short_path(#graffeo{backend = B, ref = R}, V1, V2) ->
+    graffeo_path:get_short_path(B, R, V1, V2).
+
+-doc "Shortest cycle through `V` (BFS), or `false`.".
+-spec get_short_cycle(graph(), vertex()) -> [vertex()] | false.
+get_short_cycle(#graffeo{backend = B, ref = R}, V) ->
+    graffeo_path:get_short_cycle(B, R, V).
+
+-doc "Vertices with in-degree 0.".
+-spec source_vertices(graph()) -> [vertex()].
+source_vertices(#graffeo{backend = B, ref = R}) ->
+    [V || V <- B:vertices(R), B:in_degree(R, V) =:= 0].
+
+-doc "Vertices with out-degree 0.".
+-spec sink_vertices(graph()) -> [vertex()].
+sink_vertices(#graffeo{backend = B, ref = R}) ->
+    [V || V <- B:vertices(R), B:out_degree(R, V) =:= 0].

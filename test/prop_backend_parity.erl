@@ -6,7 +6,12 @@ read-half and algorithm parity.
 
 -include_lib("proper/include/proper.hrl").
 
--export([prop_read_half_parity/0, prop_topsort_parity/0, prop_components_stdlib_parity/0]).
+-export([
+    prop_read_half_parity/0,
+    prop_topsort_parity/0,
+    prop_components_stdlib_parity/0,
+    prop_get_short_path_stdlib_parity/0
+]).
 
 prop_read_half_parity() ->
     ?FORALL(
@@ -53,6 +58,30 @@ prop_components_stdlib_parity() ->
             StdLib = digraph_utils:components(DRef),
             Graffeo = graffeo:components(DigraphG),
             Result = StdLib =:= Graffeo,
+            digraph:delete(DRef),
+            Result
+        end
+    ).
+
+prop_get_short_path_stdlib_parity() ->
+    ?FORALL(
+        {Edges, V1, V2},
+        {edge_list(), vertex_gen(), vertex_gen()},
+        begin
+            {_MapG, DigraphG, DRef} = build_both(Edges),
+            StdLib = digraph:get_short_path(DRef, V1, V2),
+            Graffeo = graffeo:get_short_path(DigraphG, V1, V2),
+            Result =
+                case {StdLib, Graffeo} of
+                    {false, false} ->
+                        true;
+                    {SL, GR} when is_list(SL), is_list(GR) ->
+                        length(SL) =:= length(GR) andalso
+                            hd(SL) =:= hd(GR) andalso
+                            lists:last(SL) =:= lists:last(GR);
+                    _ ->
+                        false
+                end,
             digraph:delete(DRef),
             Result
         end

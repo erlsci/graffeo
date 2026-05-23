@@ -27,7 +27,9 @@ constructive algorithms (`subgraph`, `condensation`) need it.
     add_vertex/2, add_vertex/3,
     add_edge/3, add_edge/4,
     del_vertex/2,
-    del_edge/3
+    del_vertices/2,
+    del_edge/3,
+    del_edges/2
 ]).
 
 %% Read (graffeo_backend, bare-ref)
@@ -140,6 +142,20 @@ all of them are removed (simple-graph contract).
 del_edge(G, From, To) ->
     D = require_handle(del_edge, G),
     remove_edges(D, From, To),
+    ok.
+
+-doc "Delete a list of vertices and their incident edges.".
+-spec del_vertices(graffeo:graph(), [graffeo:vertex()]) -> ok.
+del_vertices(G, Vs) ->
+    D = require_handle(del_vertices, G),
+    lists:foreach(fun(V) -> digraph:del_vertex(D, V) end, Vs),
+    ok.
+
+-doc "Delete a list of `{From, To}` edges.".
+-spec del_edges(graffeo:graph(), [{graffeo:vertex(), graffeo:vertex()}]) -> ok.
+del_edges(G, Pairs) ->
+    D = require_handle(del_edges, G),
+    lists:foreach(fun({From, To}) -> remove_edges(D, From, To) end, Pairs),
     ok.
 
 %%% === graffeo_backend callbacks (bare-ref) ===
