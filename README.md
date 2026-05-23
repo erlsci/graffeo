@@ -16,25 +16,17 @@ up hand-rolling on real graph projects. The benchmark it measures itself
 against is Rust's [petgraph](https://docs.rs/petgraph), which set the recent bar
 for what a graph library should give you out of the box.
 
-## The name
-
-After the San Francisco roaster (Sicilian founder, Little Italy, 1935) — and,
-not by coincidence, a true etymological cognate of *graph*: the surname descends
-from Greek *grapheus* ("scribe"), from *graphein* ("to write / scratch /
-incise"), the same root that gives graph theory its name. A graph library named
-for the word "graph" comes from. The espresso is a bonus.
-
 ## The idea
 
 Two design choices shape graffeo.
 
-**One algorithm layer, many backends.** It turns out the stdlib's algorithms
+**One algorithm layer, many backends.** The Erlang stdlib's algorithms
 were written functional-first: they touch storage only through a thin set of
 read accessors and never mutate the graph they traverse. graffeo makes that
 implicit seam explicit as an Erlang *behaviour*, so each algorithm is written
 once and runs over any backend that satisfies the contract. This is the same
-property petgraph gets from its graph traits — one algorithm body, many graph
-types — reached the Erlang way.
+property that the Rust library `petgraph` gets from its graph traits — one algorithm body, many graph
+types — `graffeo` does this the Erlang way.
 
 **Two tiers, faithful to Erlang.** The standard library already splits the
 world into values (`lists`, `maps`, `sets`) and handles (`ets`, `dets`,
