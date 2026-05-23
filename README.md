@@ -72,22 +72,23 @@ processes like any other term.
 
 ```erlang
 %% A mutable handle over digraph — ETS-backed and owned by your process.
-D = digraph:new(),
-graffeo_digraph:add_edge(D, a, b, #{weight => 1}),
-graffeo_digraph:add_edge(D, b, c, #{weight => 2}),
-graffeo_digraph:add_edge(D, a, c, #{weight => 10}),
-graffeo_digraph:add_edge(D, c, d, #{weight => 3}),
+%% One value, one namespace: build, run algorithms, then clean up.
+G = graffeo_digraph:new(),
+graffeo_digraph:add_edge(G, a, b, #{weight => 1}),
+graffeo_digraph:add_edge(G, b, c, #{weight => 2}),
+graffeo_digraph:add_edge(G, a, c, #{weight => 10}),
+graffeo_digraph:add_edge(G, c, d, #{weight => 3}),
 
-%% Wrap once to get the algorithm layer — the SAME graffeo:* calls.
-G = graffeo_digraph:wrap(D),
+%% The SAME graffeo:* algorithm calls — no wrapping needed.
 {ok, _Order}  = graffeo:topsort(G),
 {Dist, _Prev} = graffeo:dijkstra(G, a),   %% #{a => 0, b => 1, c => 3, d => 6}
 
-digraph:delete(D).   %% you own the handle's lifecycle
+graffeo_digraph:delete(G).   %% lifecycle stays in graffeo's namespace
 ```
 
-`graffeo_digraph:wrap/1` also lifts a `digraph` you already have — it just adds
-the algorithm layer on top and changes nothing about how the handle behaves.
+If you already have a bare `digraph` handle, `graffeo_digraph:wrap/1` lifts it
+into the envelope so the algorithm layer works on it. `unwrap/1` hands the bare
+handle back when you need raw `digraph:*` access.
 
 ## Status
 

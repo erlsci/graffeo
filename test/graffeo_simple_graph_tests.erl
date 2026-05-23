@@ -11,10 +11,9 @@ parallel_edge_add_parity_test() ->
     MapG1 = graffeo:add_edge(MapG0, a, b, #{weight => 1}),
     MapG2 = graffeo:add_edge(MapG1, a, b, #{weight => 99}),
 
-    D = digraph:new(),
-    ok = graffeo_digraph:add_edge(D, a, b, #{weight => 1}),
-    ok = graffeo_digraph:add_edge(D, a, b, #{weight => 99}),
-    DigG = graffeo_digraph:wrap(D),
+    DigG = graffeo_digraph:new(),
+    ok = graffeo_digraph:add_edge(DigG, a, b, #{weight => 1}),
+    ok = graffeo_digraph:add_edge(DigG, a, b, #{weight => 99}),
 
     ?assertEqual(graffeo:no_edges(MapG2), graffeo:no_edges(DigG)),
     ?assertEqual(
@@ -28,7 +27,7 @@ parallel_edge_add_parity_test() ->
     ?assertEqual(graffeo:in_degree(MapG2, b), graffeo:in_degree(DigG, b)),
     ?assertEqual(graffeo:out_degree(MapG2, a), graffeo:out_degree(DigG, a)),
     ?assertEqual(graffeo:edge_meta(MapG2, a, b), graffeo:edge_meta(DigG, a, b)),
-    digraph:delete(D).
+    graffeo_digraph:delete(DigG).
 
 %% F-21: Parallel edge parity via wrap/1 of a hand-built multigraph.
 parallel_edge_wrap_parity_test() ->

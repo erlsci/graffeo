@@ -2,24 +2,35 @@
 -moduledoc """
 Tier-2 handle backend: transparent over stdlib `digraph`.
 
-Presents a **simple directed graph** view: at most one edge per
-ordered `(From, To)` pair. If the underlying `digraph` contains
-parallel edges (e.g. via `wrap/1`), the read accessors normalize
-to the simple-graph contract (last-writer-wins for metadata).
+Construction, mutation, and lifecycle operate on the opaque
+`graffeo:graph()` envelope. Presents a **simple directed graph**
+view: at most one edge per ordered `(From, To)` pair.
+
+The `graffeo_builder` build-half behaviour is deferred until the
+constructive algorithms (`subgraph`, `condensation`) need it.
 """.
 
 -behaviour(graffeo_backend).
--behaviour(graffeo_builder).
 
-%% Construction
+-include("graffeo.hrl").
+
+%% Construction / lifecycle (envelope-based)
 -export([
     new/0,
     wrap/1,
-    add_vertex/2, add_vertex/3,
-    add_edge/3, add_edge/4
+    unwrap/1,
+    delete/1
 ]).
 
-%% Read (graffeo_backend)
+%% Mutation (envelope-based, mutate-in-place)
+-export([
+    add_vertex/2, add_vertex/3,
+    add_edge/3, add_edge/4,
+    del_vertex/2,
+    del_edge/3
+]).
+
+%% Read (graffeo_backend, bare-ref)
 -export([
     vertices/1,
     out_neighbours/2,
@@ -30,13 +41,13 @@ to the simple-graph contract (last-writer-wins for metadata).
     no_vertices/1
 ]).
 
-%% Extra accessors
+%% Extra accessors (bare-ref)
 -export([
     edge_meta/3,
     vertex_label/2
 ]).
 
-%%% === Construction ===
+%%% === Construction / lifecycle ===
 
 -doc "Create a new, empty digraph handle wrapped in a graffeo envelope.".
 -spec new() -> graffeo:graph().
@@ -49,16 +60,40 @@ new() ->
 wrap(Ref) ->
     graffeo:wrap_ref(?MODULE, Ref).
 
+-doc """
+Hand back the bare `digraph` handle from the envelope.
+
+The explicit escape hatch for users who need raw `digraph:*` access.
+""".
+-spec unwrap(graffeo:graph()) -> digraph:graph().
+unwrap(G) ->
+    require_handle(unwrap, G).
+
+-doc """
+Free the underlying digraph handle (ETS tables).
+
+Use-after-delete is undefined.
+""".
+-spec delete(graffeo:graph()) -> ok.
+delete(G) ->
+    D = require_handle(delete, G),
+    digraph:delete(D),
+    ok.
+
+%%% === Mutation (envelope-based) ===
+
 -doc "Add a vertex with the default label.".
--spec add_vertex(digraph:graph(), graffeo:vertex()) -> ok.
-add_vertex(Ref, V) ->
-    digraph:add_vertex(Ref, V),
+-spec add_vertex(graffeo:graph(), graffeo:vertex()) -> ok.
+add_vertex(G, V) ->
+    D = require_handle(add_vertex, G),
+    digraph:add_vertex(D, V),
     ok.
 
 -doc "Add a vertex with a label.".
--spec add_vertex(digraph:graph(), graffeo:vertex(), graffeo:label()) -> ok.
-add_vertex(Ref, V, Label) ->
-    digraph:add_vertex(Ref, V, Label),
+-spec add_vertex(graffeo:graph(), graffeo:vertex(), graffeo:label()) -> ok.
+add_vertex(G, V, Label) ->
+    D = require_handle(add_vertex, G),
+    digraph:add_vertex(D, V, Label),
     ok.
 
 -doc """
@@ -67,9 +102,9 @@ Add an edge with default metadata.
 If a `From→To` edge already exists, its metadata is replaced
 (simple-graph contract: at most one edge per ordered pair).
 """.
--spec add_edge(digraph:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
-add_edge(Ref, From, To) ->
-    add_edge(Ref, From, To, #{weight => 1}).
+-spec add_edge(graffeo:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
+add_edge(G, From, To) ->
+    add_edge(G, From, To, #{weight => 1}).
 
 -doc """
 Add an edge with metadata (stored as the edge label).
@@ -78,16 +113,36 @@ If a `From→To` edge already exists, it is replaced with the new
 metadata (last-writer-wins, simple-graph contract).
 """.
 -spec add_edge(
-    digraph:graph(), graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()
+    graffeo:graph(), graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()
 ) -> ok.
-add_edge(Ref, From, To, Meta) ->
-    digraph:add_vertex(Ref, From),
-    digraph:add_vertex(Ref, To),
-    remove_edges(Ref, From, To),
-    digraph:add_edge(Ref, From, To, Meta),
+add_edge(G, From, To, Meta) ->
+    D = require_handle(add_edge, G),
+    digraph:add_vertex(D, From),
+    digraph:add_vertex(D, To),
+    remove_edges(D, From, To),
+    digraph:add_edge(D, From, To, Meta),
     ok.
 
-%%% === graffeo_backend callbacks ===
+-doc "Remove vertex `V` and all its incident edges.".
+-spec del_vertex(graffeo:graph(), graffeo:vertex()) -> ok.
+del_vertex(G, V) ->
+    D = require_handle(del_vertex, G),
+    digraph:del_vertex(D, V),
+    ok.
+
+-doc """
+Remove the `From→To` edge.
+
+If the underlying digraph has parallel edges (e.g. from `wrap/1`),
+all of them are removed (simple-graph contract).
+""".
+-spec del_edge(graffeo:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
+del_edge(G, From, To) ->
+    D = require_handle(del_edge, G),
+    remove_edges(D, From, To),
+    ok.
+
+%%% === graffeo_backend callbacks (bare-ref) ===
 
 -doc "All vertices in the graph.".
 -spec vertices(digraph:graph()) -> [graffeo:vertex()].
@@ -124,7 +179,7 @@ no_edges(Ref) ->
 no_vertices(Ref) ->
     digraph:no_vertices(Ref).
 
-%%% === Extra accessors ===
+%%% === Extra accessors (bare-ref) ===
 
 -doc """
 Get edge metadata between two vertices.
@@ -148,6 +203,12 @@ vertex_label(Ref, V) ->
     end.
 
 %%% --- Internal ---
+
+-spec require_handle(atom(), graffeo:graph()) -> digraph:graph().
+require_handle(_Op, #graffeo{backend = ?MODULE, ref = D}) ->
+    D;
+require_handle(Op, #graffeo{backend = Backend}) ->
+    erlang:error({handle_only, Op, Backend}).
 
 -spec remove_edges(digraph:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
 remove_edges(Ref, From, To) ->

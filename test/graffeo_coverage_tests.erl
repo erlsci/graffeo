@@ -43,16 +43,15 @@ digraph_facade_vertex_label_test() ->
 
 digraph_builder_test() ->
     G = graffeo_digraph:new(),
-    D = element(3, G),
-    ok = graffeo_digraph:add_edge(D, a, b),
-    ok = graffeo_digraph:add_edge(D, b, a, #{weight => 5}),
-    ok = graffeo_digraph:add_vertex(D, b, my_label),
+    ok = graffeo_digraph:add_edge(G, a, b),
+    ok = graffeo_digraph:add_edge(G, b, a, #{weight => 5}),
+    ok = graffeo_digraph:add_vertex(G, b, my_label),
     Verts = lists:sort(graffeo:vertices(G)),
     ?assertEqual([a, b], Verts),
     ?assertEqual(2, graffeo:no_edges(G)),
     ?assertEqual({ok, my_label}, graffeo:vertex_label(G, b)),
     ?assertEqual({ok, #{weight => 5}}, graffeo:edge_meta(G, b, a)),
-    digraph:delete(D).
+    graffeo_digraph:delete(G).
 
 digraph_edge_meta_not_found_test() ->
     D = digraph:new(),
