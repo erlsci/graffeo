@@ -74,25 +74,53 @@ wrap_ref(Backend, Ref) ->
 new() ->
     wrap_ref(graffeo_map, graffeo_map:new()).
 
--doc "Add a vertex with the default label.".
+-doc """
+Add a vertex with the default label.
+
+Tier-1 operation — only valid on map-backed graphs.
+For handle-backed graphs, use `graffeo_digraph:add_vertex/2`.
+""".
 -spec add_vertex(graph(), vertex()) -> graph().
 add_vertex(#graffeo{backend = graffeo_map, ref = Ref}, V) ->
-    wrap_ref(graffeo_map, graffeo_map:add_vertex(Ref, V)).
+    wrap_ref(graffeo_map, graffeo_map:add_vertex(Ref, V));
+add_vertex(#graffeo{backend = Backend}, _V) ->
+    erlang:error({tier1_only, add_vertex, Backend}).
 
--doc "Add a vertex with a label.".
+-doc """
+Add a vertex with a label.
+
+Tier-1 operation — only valid on map-backed graphs.
+For handle-backed graphs, use `graffeo_digraph:add_vertex/3`.
+""".
 -spec add_vertex(graph(), vertex(), label()) -> graph().
 add_vertex(#graffeo{backend = graffeo_map, ref = Ref}, V, Label) ->
-    wrap_ref(graffeo_map, graffeo_map:add_vertex(Ref, V, Label)).
+    wrap_ref(graffeo_map, graffeo_map:add_vertex(Ref, V, Label));
+add_vertex(#graffeo{backend = Backend}, _V, _Label) ->
+    erlang:error({tier1_only, add_vertex, Backend}).
 
--doc "Add an edge with default metadata.".
+-doc """
+Add an edge with default metadata.
+
+Tier-1 operation — only valid on map-backed graphs.
+For handle-backed graphs, use `graffeo_digraph:add_edge/3`.
+""".
 -spec add_edge(graph(), vertex(), vertex()) -> graph().
 add_edge(#graffeo{backend = graffeo_map, ref = Ref}, From, To) ->
-    wrap_ref(graffeo_map, graffeo_map:add_edge(Ref, From, To)).
+    wrap_ref(graffeo_map, graffeo_map:add_edge(Ref, From, To));
+add_edge(#graffeo{backend = Backend}, _From, _To) ->
+    erlang:error({tier1_only, add_edge, Backend}).
 
--doc "Add an edge with metadata (weight, label).".
+-doc """
+Add an edge with metadata (weight, label).
+
+Tier-1 operation — only valid on map-backed graphs.
+For handle-backed graphs, use `graffeo_digraph:add_edge/4`.
+""".
 -spec add_edge(graph(), vertex(), vertex(), edge_meta()) -> graph().
 add_edge(#graffeo{backend = graffeo_map, ref = Ref}, From, To, Meta) ->
-    wrap_ref(graffeo_map, graffeo_map:add_edge(Ref, From, To, Meta)).
+    wrap_ref(graffeo_map, graffeo_map:add_edge(Ref, From, To, Meta));
+add_edge(#graffeo{backend = Backend}, _From, _To, _Meta) ->
+    erlang:error({tier1_only, add_edge, Backend}).
 
 %%% === Read accessors (dispatch via behaviour) ===
 
@@ -154,6 +182,10 @@ topsort(#graffeo{backend = B, ref = R}) ->
 -doc """
 Dijkstra shortest paths from `Source`, using stored edge weights.
 Returns `{Distances, Predecessors}`.
+
+**Precondition:** all edge costs must be non-negative. Negative costs
+produce undefined results. For negative-weight graphs, use a future
+Bellman-Ford (not yet implemented).
 """.
 -spec dijkstra(graph(), vertex()) ->
     {#{vertex() => number()}, #{vertex() => vertex()}}.
@@ -163,6 +195,9 @@ dijkstra(#graffeo{backend = B, ref = R}, Source) ->
 -doc """
 Dijkstra shortest paths with options.
 Options: `#{cost => fun(edge_meta()) -> number()}`.
+
+**Precondition:** the cost function must return non-negative values.
+Negative costs produce undefined results.
 """.
 -spec dijkstra(graph(), vertex(), map()) ->
     {#{vertex() => number()}, #{vertex() => vertex()}}.

@@ -1,7 +1,11 @@
 -module(graffeo_digraph).
 -moduledoc """
-Tier-2 handle backend: transparent over stdlib `digraph`. Operations
-mutate in place; the graph is a handle, not a value.
+Tier-2 handle backend: transparent over stdlib `digraph`.
+
+Presents a **simple directed graph** view: at most one edge per
+ordered `(From, To)` pair. If the underlying `digraph` contains
+parallel edges (e.g. via `wrap/1`), the read accessors normalize
+to the simple-graph contract (last-writer-wins for metadata).
 """.
 
 -behaviour(graffeo_backend).
@@ -57,18 +61,29 @@ add_vertex(Ref, V, Label) ->
     digraph:add_vertex(Ref, V, Label),
     ok.
 
--doc "Add an edge with default metadata.".
+-doc """
+Add an edge with default metadata.
+
+If a `From→To` edge already exists, its metadata is replaced
+(simple-graph contract: at most one edge per ordered pair).
+""".
 -spec add_edge(digraph:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
 add_edge(Ref, From, To) ->
     add_edge(Ref, From, To, #{weight => 1}).
 
--doc "Add an edge with metadata (stored as the edge label).".
+-doc """
+Add an edge with metadata (stored as the edge label).
+
+If a `From→To` edge already exists, it is replaced with the new
+metadata (last-writer-wins, simple-graph contract).
+""".
 -spec add_edge(
     digraph:graph(), graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()
 ) -> ok.
 add_edge(Ref, From, To, Meta) ->
     digraph:add_vertex(Ref, From),
     digraph:add_vertex(Ref, To),
+    remove_edges(Ref, From, To),
     digraph:add_edge(Ref, From, To, Meta),
     ok.
 
@@ -79,30 +94,30 @@ add_edge(Ref, From, To, Meta) ->
 vertices(Ref) ->
     digraph:vertices(Ref).
 
--doc "Vertices reachable from `V` via outgoing edges.".
+-doc "Vertices reachable from `V` via outgoing edges (deduplicated).".
 -spec out_neighbours(digraph:graph(), graffeo:vertex()) -> [graffeo:vertex()].
 out_neighbours(Ref, V) ->
-    digraph:out_neighbours(Ref, V).
+    lists:usort(digraph:out_neighbours(Ref, V)).
 
--doc "Vertices that reach `V` via incoming edges.".
+-doc "Vertices that reach `V` via incoming edges (deduplicated).".
 -spec in_neighbours(digraph:graph(), graffeo:vertex()) -> [graffeo:vertex()].
 in_neighbours(Ref, V) ->
-    digraph:in_neighbours(Ref, V).
+    lists:usort(digraph:in_neighbours(Ref, V)).
 
--doc "Number of incoming edges to `V`.".
+-doc "Number of distinct incoming neighbours of `V`.".
 -spec in_degree(digraph:graph(), graffeo:vertex()) -> non_neg_integer().
 in_degree(Ref, V) ->
-    digraph:in_degree(Ref, V).
+    length(in_neighbours(Ref, V)).
 
--doc "Number of outgoing edges from `V`.".
+-doc "Number of distinct outgoing neighbours of `V`.".
 -spec out_degree(digraph:graph(), graffeo:vertex()) -> non_neg_integer().
 out_degree(Ref, V) ->
-    digraph:out_degree(Ref, V).
+    length(out_neighbours(Ref, V)).
 
--doc "Total number of edges in the graph.".
+-doc "Total number of distinct `(From, To)` edges in the graph.".
 -spec no_edges(digraph:graph()) -> non_neg_integer().
 no_edges(Ref) ->
-    digraph:no_edges(Ref).
+    distinct_edge_count(Ref).
 
 -doc "Total number of vertices in the graph.".
 -spec no_vertices(digraph:graph()) -> non_neg_integer().
@@ -111,12 +126,17 @@ no_vertices(Ref) ->
 
 %%% === Extra accessors ===
 
--doc "Get edge metadata between two vertices.".
+-doc """
+Get edge metadata between two vertices.
+
+If parallel edges exist (e.g. from a wrapped raw `digraph`),
+returns the metadata of the highest-numbered edge (last-writer-wins).
+""".
 -spec edge_meta(digraph:graph(), graffeo:vertex(), graffeo:vertex()) ->
     {ok, graffeo:edge_meta()} | error.
 edge_meta(Ref, From, To) ->
     Edges = digraph:out_edges(Ref, From),
-    find_edge_meta(Ref, Edges, To).
+    find_last_edge_meta(Ref, Edges, To).
 
 -doc "Get the label of a vertex.".
 -spec vertex_label(digraph:graph(), graffeo:vertex()) ->
@@ -129,12 +149,43 @@ vertex_label(Ref, V) ->
 
 %%% --- Internal ---
 
--spec find_edge_meta(digraph:graph(), [digraph:edge()], graffeo:vertex()) ->
+-spec remove_edges(digraph:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
+remove_edges(Ref, From, To) ->
+    Edges = digraph:out_edges(Ref, From),
+    lists:foreach(
+        fun(E) ->
+            case digraph:edge(Ref, E) of
+                {E, From, To, _Meta} -> digraph:del_edge(Ref, E);
+                _ -> ok
+            end
+        end,
+        Edges
+    ).
+
+-spec find_last_edge_meta(digraph:graph(), [digraph:edge()], graffeo:vertex()) ->
     {ok, graffeo:edge_meta()} | error.
-find_edge_meta(_Ref, [], _To) ->
-    error;
-find_edge_meta(Ref, [E | Rest], To) ->
-    case digraph:edge(Ref, E) of
-        {E, _From, To, Meta} -> {ok, Meta};
-        _ -> find_edge_meta(Ref, Rest, To)
+find_last_edge_meta(Ref, Edges, To) ->
+    Matching = [
+        {E, Meta}
+     || E <- Edges,
+        {E1, _From, To1, Meta} <- [digraph:edge(Ref, E)],
+        E1 =:= E,
+        To1 =:= To
+    ],
+    case Matching of
+        [] ->
+            error;
+        _ ->
+            {_, Meta} = lists:last(Matching),
+            {ok, Meta}
     end.
+
+-spec distinct_edge_count(digraph:graph()) -> non_neg_integer().
+distinct_edge_count(Ref) ->
+    Pairs = lists:usort([
+        {From, To}
+     || E <- digraph:edges(Ref),
+        {E1, From, To, _} <- [digraph:edge(Ref, E)],
+        E1 =:= E
+    ]),
+    length(Pairs).

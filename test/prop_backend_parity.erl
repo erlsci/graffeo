@@ -31,7 +31,9 @@ prop_topsort_parity() ->
             Result =
                 case {MapTS, DigTS} of
                     {{ok, MapOrder}, {ok, DigOrder}} ->
-                        length(MapOrder) =:= length(DigOrder);
+                        length(MapOrder) =:= length(DigOrder) andalso
+                            is_valid_topsort(MapG, MapOrder) andalso
+                            is_valid_topsort(DigraphG, DigOrder);
                     {false, false} ->
                         true;
                     _ ->
@@ -45,11 +47,7 @@ prop_topsort_parity() ->
 %%% --- generators ---
 
 edge_list() ->
-    ?LET(
-        Edges,
-        list({vertex_gen(), vertex_gen(), pos_integer()}),
-        dedup_edges(Edges)
-    ).
+    list({vertex_gen(), vertex_gen(), pos_integer()}).
 
 dag_edge_list() ->
     ?LET(
@@ -83,17 +81,18 @@ build_both(Edges) ->
     DigraphG = graffeo_digraph:wrap(D),
     {MapG, DigraphG, D}.
 
-dedup_edges(Edges) ->
-    dedup_edges(Edges, sets:new([{version, 2}]), []).
-
-dedup_edges([], _Seen, Acc) ->
-    lists:reverse(Acc);
-dedup_edges([{F, T, W} | Rest], Seen, Acc) ->
-    Key = {F, T},
-    case sets:is_element(Key, Seen) of
-        true -> dedup_edges(Rest, Seen, Acc);
-        false -> dedup_edges(Rest, sets:add_element(Key, Seen), [{F, T, W} | Acc])
-    end.
+is_valid_topsort(G, Order) ->
+    Pos = maps:from_list(lists:zip(Order, lists:seq(1, length(Order)))),
+    lists:all(
+        fun(V) ->
+            VPos = maps:get(V, Pos),
+            lists:all(
+                fun(N) -> maps:get(N, Pos) > VPos end,
+                graffeo:out_neighbours(G, V)
+            )
+        end,
+        graffeo:vertices(G)
+    ).
 
 check_read_parity(MapG, DigraphG) ->
     MapVerts = lists:sort(graffeo:vertices(MapG)),

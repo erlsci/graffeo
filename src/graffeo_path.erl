@@ -23,6 +23,9 @@ dijkstra(Backend, Ref, Source) ->
 -doc """
 Dijkstra with options. Supported options:
 - `cost`: a `fun(edge_meta()) -> number()` for custom costs.
+
+**Precondition:** costs must be non-negative. Negative costs yield
+undefined results; use Bellman-Ford for negative-weight graphs (later band).
 """.
 -spec dijkstra(module(), term(), graffeo:vertex(), map()) ->
     {dist_map(), prev_map()}.

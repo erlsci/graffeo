@@ -1,4 +1,4 @@
-.PHONY: all compile clean test dialyzer xref format lint docs console check
+.PHONY: all compile clean test dialyzer xref format lint docs console check coverage
 
 REBAR := rebar3
 APP_NAME := graffeo
@@ -15,8 +15,11 @@ clean:
 
 test:
 	@mkdir -p logs
-	@$(REBAR) do eunit, ct, proper -c
+	@$(REBAR) do eunit --cover, ct --cover, proper -c
 	@$(REBAR) cover
+
+coverage: test
+	@escript scripts/check_coverage.escript
 
 dialyzer:
 	@$(REBAR) dialyzer
@@ -33,7 +36,7 @@ lint:
 console:
 	@$(REBAR) shell
 
-check: clean compile xref dialyzer lint test
+check: clean compile xref dialyzer lint coverage
 	@echo "All checks passed!"
 
 # Testing helpers
@@ -76,6 +79,7 @@ help:
 	@echo "  make console        - Start Erlang shell with app loaded"
 	@echo "  make check          - Run all checks (xref, dialyzer, lint, tests)"
 	@echo "  make analyze        - Run static analysis (xref, dialyzer, lint)"
+	@echo "  make coverage       - Run tests and assert >=95% executable-line coverage"
 	@echo "  make coverage-report - Generate coverage report"
 	@echo "  make publish        - Publish to Hex"
 	@echo "  make help           - Show this help message"

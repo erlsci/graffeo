@@ -198,6 +198,17 @@ map_vertex_label_missing_test() ->
     G = graffeo:new(),
     ?assertEqual(error, graffeo:vertex_label(G, nonexistent)).
 
+%%% --- F-24: clear error for Tier-1 op on Tier-2 graph ---
+
+tier1_op_on_tier2_clear_error_test() ->
+    G = graffeo_digraph:new(),
+    ?assertError({tier1_only, add_vertex, graffeo_digraph}, graffeo:add_vertex(G, a)),
+    ?assertError({tier1_only, add_vertex, graffeo_digraph}, graffeo:add_vertex(G, a, label)),
+    ?assertError({tier1_only, add_edge, graffeo_digraph}, graffeo:add_edge(G, a, b)),
+    ?assertError(
+        {tier1_only, add_edge, graffeo_digraph}, graffeo:add_edge(G, a, b, #{weight => 1})
+    ).
+
 %%% --- graffeo_path edge_cost with missing meta ---
 
 dijkstra_default_weight_edges_test() ->
