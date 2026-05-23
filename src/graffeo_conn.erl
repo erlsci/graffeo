@@ -22,7 +22,9 @@ The DFS/forest engine is ported from the stdlib but runs over
     loop_vertices/3,
     is_tree/3,
     is_arborescence/3,
-    arborescence_root/3
+    arborescence_root/3,
+    subgraph/4,
+    condensation/4
 ]).
 
 %%% === Public API ===
@@ -148,6 +150,97 @@ arborescence_root(B, R, Vs) ->
         false ->
             no
     end.
+
+%%% === Constructive algorithms ===
+
+-doc """
+Induced subgraph over the given vertices.
+
+The result is a new graph of the same backend containing only the
+vertices in `SubVs` and edges where both endpoints are in `SubVs`.
+Labels and edge metadata are preserved.
+""".
+-spec subgraph(graffeo:graph(), module(), term(), [graffeo:vertex()]) -> graffeo:graph().
+subgraph(G, B, R, SubVs) ->
+    subgraph_build(G, B, R, SubVs).
+
+-doc """
+Condensation: one vertex per SCC, labelled with the member list.
+
+The result is a new graph of the same backend. Each vertex is the
+list of member vertices of a strongly connected component. An edge
+exists between condensed vertices where any cross-component edge
+exists in the original.
+""".
+-spec condensation(module(), term(), graffeo:graph(), [graffeo:vertex()]) -> graffeo:graph().
+condensation(B, R, G, Vs) ->
+    SCs = strong_components(B, R, Vs),
+    V2SC = maps:from_list([{V, SC} || SC <- SCs, V <- SC]),
+    Result0 = lists:foldl(
+        fun(SC, Acc) ->
+            B:build_add_vertex(Acc, SC, SC)
+        end,
+        B:empty_like(G),
+        SCs
+    ),
+    SCPairs = lists:usort(
+        lists:flatmap(
+            fun(SC) ->
+                [
+                    {SC, maps:get(N, V2SC)}
+                 || V <- SC,
+                    N <- B:out_neighbours(R, V),
+                    maps:get(N, V2SC) =/= SC
+                ]
+            end,
+            SCs
+        )
+    ),
+    lists:foldl(
+        fun({FromSC, ToSC}, Acc) ->
+            B:build_add_edge(Acc, FromSC, ToSC, #{})
+        end,
+        Result0,
+        SCPairs
+    ).
+
+-spec subgraph_build(graffeo:graph(), module(), term(), [graffeo:vertex()]) -> graffeo:graph().
+subgraph_build(G, B, R, SubVs) ->
+    SubSet = sets:from_list(SubVs, [{version, 2}]),
+    Result0 = lists:foldl(
+        fun(V, Acc) ->
+            case B:vertex_label(R, V) of
+                {ok, Label} -> B:build_add_vertex(Acc, V, Label);
+                error -> Acc
+            end
+        end,
+        B:empty_like(G),
+        SubVs
+    ),
+    lists:foldl(
+        fun(V, Acc0) ->
+            Ns = B:out_neighbours(R, V),
+            lists:foldl(
+                fun(N, Acc1) ->
+                    case sets:is_element(N, SubSet) of
+                        true ->
+                            Meta =
+                                case B:edge_meta(R, V, N) of
+                                    {ok, M} -> M;
+                                    error -> #{}
+                                end,
+                            B:build_add_edge(Acc1, V, N, Meta);
+                        false ->
+                            Acc1
+                    end
+                end,
+                Acc0,
+                Ns
+            )
+        end,
+        Result0,
+        SubVs
+    ).
 
 %%% === Internal: the forest engine ===
 

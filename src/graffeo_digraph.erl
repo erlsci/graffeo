@@ -5,12 +5,10 @@ Tier-2 handle backend: transparent over stdlib `digraph`.
 Construction, mutation, and lifecycle operate on the opaque
 `graffeo:graph()` envelope. Presents a **simple directed graph**
 view: at most one edge per ordered `(From, To)` pair.
-
-The `graffeo_builder` build-half behaviour is deferred until the
-constructive algorithms (`subgraph`, `condensation`) need it.
 """.
 
 -behaviour(graffeo_backend).
+-behaviour(graffeo_builder).
 
 -include("graffeo.hrl").
 
@@ -47,6 +45,13 @@ constructive algorithms (`subgraph`, `condensation`) need it.
 -export([
     edge_meta/3,
     vertex_label/2
+]).
+
+%% graffeo_builder callbacks (envelope-based)
+-export([
+    empty_like/1,
+    build_add_vertex/2, build_add_vertex/3,
+    build_add_edge/4
 ]).
 
 %%% === Construction / lifecycle ===
@@ -220,6 +225,32 @@ vertex_label(Ref, V) ->
         {V, Label} -> {ok, Label};
         false -> error
     end.
+
+%%% === graffeo_builder callbacks (envelope-based) ===
+
+-doc false.
+-spec empty_like(graffeo:graph()) -> graffeo:graph().
+empty_like(_G) ->
+    new().
+
+-doc false.
+-spec build_add_vertex(graffeo:graph(), graffeo:vertex()) -> graffeo:graph().
+build_add_vertex(G, V) ->
+    ok = add_vertex(G, V),
+    G.
+
+-doc false.
+-spec build_add_vertex(graffeo:graph(), graffeo:vertex(), graffeo:label()) -> graffeo:graph().
+build_add_vertex(G, V, Label) ->
+    ok = add_vertex(G, V, Label),
+    G.
+
+-doc false.
+-spec build_add_edge(graffeo:graph(), graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()) ->
+    graffeo:graph().
+build_add_edge(G, From, To, Meta) ->
+    ok = add_edge(G, From, To, Meta),
+    G.
 
 %%% --- Internal ---
 

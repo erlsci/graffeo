@@ -42,6 +42,12 @@ users touch.
     top_k_by_degree/2
 ]).
 
+%% Constructive algorithms
+-export([
+    subgraph/2,
+    condensation/1
+]).
+
 %% Path/cycle queries (ported from digraph)
 -export([
     get_path/3,
@@ -338,6 +344,34 @@ is_arborescence(#graffeo{backend = B, ref = R}) ->
 -spec arborescence_root(graph()) -> {yes, vertex()} | no.
 arborescence_root(#graffeo{backend = B, ref = R}) ->
     graffeo_conn:arborescence_root(B, R, B:vertices(R)).
+
+%%% === Constructive algorithms ===
+
+-doc """
+Induced subgraph over the given vertices.
+
+Returns a new graph (same backend) with only the listed vertices
+and edges where both endpoints are in the list.
+
+**Tier-2 lifecycle:** over a handle graph, the result is a new
+handle the caller must `graffeo_digraph:delete/1`.
+""".
+-spec subgraph(graph(), [vertex()]) -> graph().
+subgraph(#graffeo{backend = B, ref = R} = G, SubVs) ->
+    graffeo_conn:subgraph(G, B, R, SubVs).
+
+-doc """
+Condensation: one vertex per strongly connected component.
+
+Each vertex in the result is the member-list of a SCC. An edge
+exists where any cross-component edge exists in the original.
+
+**Tier-2 lifecycle:** over a handle graph, the result is a new
+handle the caller must `graffeo_digraph:delete/1`.
+""".
+-spec condensation(graph()) -> graph().
+condensation(#graffeo{backend = B, ref = R} = G) ->
+    graffeo_conn:condensation(B, R, G, B:vertices(R)).
 
 %%% === Path/cycle queries ===
 

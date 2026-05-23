@@ -86,9 +86,9 @@ handle_only_guard_test() ->
     ?assertError({handle_only, delete, graffeo_map}, graffeo_digraph:delete(MapG)),
     ?assertError({handle_only, unwrap, graffeo_map}, graffeo_digraph:unwrap(MapG)).
 
-%% F-32: graffeo_digraph no longer declares graffeo_builder; graffeo_map still does
+%% F-32 → M2-21: graffeo_builder reinstated on both backends
 behaviour_declarations_test() ->
     {ok, DigSrc} = file:read_file("src/graffeo_digraph.erl"),
-    ?assertEqual(nomatch, binary:match(DigSrc, <<"behaviour(graffeo_builder)">>)),
+    ?assertNotEqual(nomatch, binary:match(DigSrc, <<"behaviour(graffeo_builder)">>)),
     {ok, MapSrc} = file:read_file("src/graffeo_map.erl"),
     ?assertNotEqual(nomatch, binary:match(MapSrc, <<"behaviour(graffeo_builder)">>)).

@@ -16,6 +16,13 @@ untouched. Labels on vertices, weight/metadata on edges.
     vertex_label/2
 ]).
 
+%% graffeo_builder callbacks (envelope-based)
+-export([
+    empty_like/1,
+    build_add_vertex/2, build_add_vertex/3,
+    build_add_edge/4
+]).
+
 -export([
     vertices/1,
     out_neighbours/2,
@@ -127,6 +134,29 @@ edge_meta(#gmap{out = Out}, From, To) ->
     {ok, graffeo:label()} | error.
 vertex_label(#gmap{vs = Vs}, V) ->
     maps:find(V, Vs).
+
+%%% --- graffeo_builder callbacks (envelope-based) ---
+
+-doc false.
+-spec empty_like(graffeo:graph()) -> graffeo:graph().
+empty_like(_G) ->
+    graffeo:wrap_ref(graffeo_map, new()).
+
+-doc false.
+-spec build_add_vertex(graffeo:graph(), graffeo:vertex()) -> graffeo:graph().
+build_add_vertex(G, V) ->
+    build_add_vertex(G, V, []).
+
+-doc false.
+-spec build_add_vertex(graffeo:graph(), graffeo:vertex(), graffeo:label()) -> graffeo:graph().
+build_add_vertex(G, V, Label) ->
+    graffeo:add_vertex(G, V, Label).
+
+-doc false.
+-spec build_add_edge(graffeo:graph(), graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()) ->
+    graffeo:graph().
+build_add_edge(G, From, To, Meta) ->
+    graffeo:add_edge(G, From, To, Meta).
 
 %%% --- Internal ---
 
