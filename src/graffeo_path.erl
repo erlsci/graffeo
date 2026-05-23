@@ -6,6 +6,8 @@ Path and shortest-path algorithms over the read-half behaviour.
 -export([
     dijkstra/3,
     dijkstra/4,
+    astar/5,
+    astar/6,
     get_path/4,
     get_cycle/3,
     get_short_path/4,
@@ -41,6 +43,94 @@ dijkstra(Backend, Ref, Source, Opts) ->
     Prev0 = #{},
     Queue0 = gb_sets:singleton({0, Source}),
     dijkstra_loop(Backend, Ref, CostFun, Queue0, Dist0, Prev0).
+
+%%% === A* ===
+
+-type heuristic_fun() :: fun((graffeo:vertex()) -> number()).
+
+-doc "A* with default cost (stored weight) and zero heuristic (degenerates to Dijkstra).".
+-spec astar(module(), term(), graffeo:vertex(), graffeo:vertex(), [graffeo:vertex()]) ->
+    {ok, [graffeo:vertex()], number()} | none.
+astar(B, R, Source, Target, Vs) ->
+    astar(B, R, Source, Target, Vs, #{}).
+
+-doc """
+A* with options.
+- `cost`: `fun(edge_meta()) -> number()` (default: stored weight).
+- `heuristic`: `fun(vertex()) -> number()` (default: `fun(_) -> 0.0 end`,
+  always admissible, degenerates to uniform-cost search).
+
+**Preconditions:** costs must be non-negative; the heuristic must be
+admissible (never overestimate the true remaining cost) for the result
+to be optimal. The default-zero heuristic always satisfies admissibility.
+""".
+-spec astar(module(), term(), graffeo:vertex(), graffeo:vertex(), [graffeo:vertex()], map()) ->
+    {ok, [graffeo:vertex()], number()} | none.
+astar(B, R, Source, Target, _Vs0, Opts) ->
+    CostFn = maps:get(cost, Opts, fun default_cost/1),
+    HFn = maps:get(heuristic, Opts, fun(_) -> 0.0 end),
+    GScore0 = #{Source => 0},
+    CameFrom0 = #{},
+    H0 = HFn(Source),
+    Queue0 = gb_sets:singleton({H0, Source}),
+    astar_loop(B, R, Target, CostFn, HFn, Queue0, GScore0, CameFrom0).
+
+%%% --- Internal: A* ---
+
+-spec astar_loop(
+    module(),
+    term(),
+    graffeo:vertex(),
+    cost_fun(),
+    heuristic_fun(),
+    gb_sets:set(),
+    dist_map(),
+    prev_map()
+) ->
+    {ok, [graffeo:vertex()], number()} | none.
+astar_loop(B, R, Target, CostFn, HFn, Queue, GScore, CameFrom) ->
+    case gb_sets:is_empty(Queue) of
+        true ->
+            none;
+        false ->
+            {{_FScore, U}, Queue1} = gb_sets:take_smallest(Queue),
+            UG = maps:get(U, GScore),
+            case U =:= Target of
+                true ->
+                    Path = reconstruct_path(U, CameFrom),
+                    {ok, Path, UG};
+                false ->
+                    Neighbours = B:out_neighbours(R, U),
+                    {Queue2, GScore2, CameFrom2} = lists:foldl(
+                        fun(V, {Q, GS, CF}) ->
+                            Meta = B:edge_meta(R, U, V),
+                            Cost = edge_cost(CostFn, Meta),
+                            TentG = UG + Cost,
+                            case TentG < maps:get(V, GS, infinity) of
+                                true ->
+                                    F = TentG + HFn(V),
+                                    {gb_sets:add_element({F, V}, Q), GS#{V => TentG}, CF#{V => U}};
+                                false ->
+                                    {Q, GS, CF}
+                            end
+                        end,
+                        {Queue1, GScore, CameFrom},
+                        Neighbours
+                    ),
+                    astar_loop(B, R, Target, CostFn, HFn, Queue2, GScore2, CameFrom2)
+            end
+    end.
+
+-spec reconstruct_path(graffeo:vertex(), prev_map()) -> [graffeo:vertex()].
+reconstruct_path(V, CameFrom) ->
+    reconstruct_path(V, CameFrom, [V]).
+
+-spec reconstruct_path(graffeo:vertex(), prev_map(), [graffeo:vertex()]) -> [graffeo:vertex()].
+reconstruct_path(V, CameFrom, Acc) ->
+    case maps:find(V, CameFrom) of
+        {ok, Prev} -> reconstruct_path(Prev, CameFrom, [Prev | Acc]);
+        error -> Acc
+    end.
 
 %%% === Path/cycle queries ===
 

@@ -35,6 +35,8 @@ users touch.
     topsort/1,
     dijkstra/2,
     dijkstra/3,
+    astar/3,
+    astar/4,
     bfs/2,
     bfs/3,
     degree/2,
@@ -237,6 +239,29 @@ Negative costs produce undefined results.
     {#{vertex() => number()}, #{vertex() => vertex()}}.
 dijkstra(#graffeo{backend = B, ref = R}, Source, Opts) ->
     graffeo_path:dijkstra(B, R, Source, Opts).
+
+-doc """
+A* shortest path from `Source` to `Target`, using stored edge weights.
+Returns `{ok, Path, Cost}` or `none` if unreachable.
+
+With the default zero heuristic, degenerates to Dijkstra.
+
+**Preconditions:** costs must be non-negative; the heuristic must be
+admissible (never overestimate) for the result to be optimal.
+""".
+-spec astar(graph(), vertex(), vertex()) ->
+    {ok, [vertex()], number()} | none.
+astar(#graffeo{backend = B, ref = R}, Source, Target) ->
+    graffeo_path:astar(B, R, Source, Target, B:vertices(R)).
+
+-doc """
+A* shortest path with options.
+Options: `#{cost => fun(edge_meta()) -> number(), heuristic => fun(vertex()) -> number()}`.
+""".
+-spec astar(graph(), vertex(), vertex(), map()) ->
+    {ok, [vertex()], number()} | none.
+astar(#graffeo{backend = B, ref = R}, Source, Target, Opts) ->
+    graffeo_path:astar(B, R, Source, Target, B:vertices(R), Opts).
 
 -doc """
 BFS from `Source` with default options (direction `out`, no filter).

@@ -58,10 +58,13 @@ G2 = graffeo:add_edge(G1, b, c, #{weight => 2}),
 G3 = graffeo:add_edge(G2, a, c, #{weight => 10}),
 G  = graffeo:add_edge(G3, c, d, #{weight => 3}),
 
-{ok, _Order}  = graffeo:topsort(G),       %% a valid topological order, e.g. [a, b, c, d]
-{Dist, _Prev} = graffeo:dijkstra(G, a),   %% #{a => 0, b => 1, c => 3, d => 6}
-3             = graffeo:degree(G, c),      %% in: a, b (2) + out: d (1)
-[{a, 0} | _]  = graffeo:bfs(G, a).         %% [{Vertex, Distance}], breadth-first from the source
+{ok, _Order}   = graffeo:topsort(G),       %% a valid topological order, e.g. [a, b, c, d]
+{Dist, _Prev}  = graffeo:dijkstra(G, a),   %% #{a => 0, b => 1, c => 3, d => 6}
+{ok, _Path, 6} = graffeo:astar(G, a, d),   %% weighted A*: cheapest a→d is a,b,c,d (6), not a,c,d (13)
+3              = graffeo:degree(G, c),      %% in: a, b (2) + out: d (1)
+[a, b, c, d]   = lists:sort(graffeo:reachable(G, [a])),  %% the digraph_utils family, on the same value
+true           = graffeo:is_acyclic(G),
+[{a, 0} | _]   = graffeo:bfs(G, a).         %% [{Vertex, Distance}], breadth-first from the source
 ```
 
 Because the graph is a plain value, `G0` still has zero edges after all of the
@@ -92,27 +95,60 @@ handle back when you need raw `digraph:*` access.
 
 ## Status
 
-**0.1.0 — the first vertical slice.** graffeo is young but real, and ready to
-try. Implemented, and tested across *both* tiers:
+**0.1.0 — full stdlib parity, and then some.** graffeo now implements the
+*entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
+every function runs over *both* tiers — the functional map value (default) and
+the `digraph`/ETS handle. All of the following is implemented and tested (eunit
++ Common Test + PropEr):
+
+**Building & access**
 
 - the graph-access behaviour and its two backends — the functional map value
   (default) and the `digraph`/ETS handle;
-- topological sort;
-- weighted shortest paths (Dijkstra, with a pluggable cost function);
+- vertices and edges with labels and edge metadata; in/out neighbours;
+- handle-tier mutation in one namespace — `add_vertex/2,3`, `add_edge/3,4`,
+  `del_vertex/2`, `del_vertices/2`, `del_edge/3`, `del_edges/2`, plus `wrap/1`,
+  `unwrap/1`, and `delete/1`.
+
+**Shortest paths & weights**
+
+- Dijkstra (`dijkstra/2,3`) with a pluggable cost function;
+- weighted A\* (`astar/3,4`) with a pluggable cost function and an admissible
+  heuristic — the default-zero heuristic degenerates cleanly to Dijkstra.
+
+**Path & cycle queries** (faithful ports of `digraph`)
+
+- `get_path/3`, `get_cycle/2`, `get_short_path/3`, `get_short_cycle/2`,
+  `source_vertices/1`, `sink_vertices/1`.
+
+**Connectivity & DFS family** (faithful ports of `digraph_utils`)
+
+- `components/1`, `strong_components/1`, `cyclic_strong_components/1`;
+- `reachable/2`, `reachable_neighbours/2`, `reaching/2`,
+  `reaching_neighbours/2`;
+- `is_acyclic/1`, `is_tree/1`, `is_arborescence/1`, `arborescence_root/1`,
+  `loop_vertices/1`, `preorder/1`, `postorder/1`.
+
+**Constructive & metrics**
+
+- `subgraph/2,3` and `condensation/1`, each returning a graph of the same
+  backend as its input;
 - breadth-first traversal with direction (`out`/`in`/`both`) and an edge-type
-  filter, returning distances;
-- degree metrics — in/out/total degree, normalised degree centrality, top-k;
-- first-class reverse traversal.
+  filter, returning distances; degree metrics — in/out/total degree, normalised
+  degree centrality, top-k; first-class reverse traversal.
 
-The test suite runs every algorithm over both backends (eunit + Common Test +
-PropEr), so the "one algorithm layer, many backends" claim is enforced rather
-than merely asserted.
+Every ported function is checked for **exact parity** with its stdlib
+counterpart on the handle backend, and for **cross-tier parity** between the two
+backends — so "one algorithm layer, many backends" is enforced, not merely
+asserted. (The one documented exception is `get_short_path/3`, which guarantees
+shortest length, valid path, correct endpoints, and reachability agreement, but
+may pick a different equally-short path than `digraph` when several exist — see
+[`docs/design/`](docs/design/) for why.)
 
-Not here yet, and on the near roadmap: the rest of the `digraph_utils` family
-(components, strong components, reachability), A\*, minimum spanning trees, a
-`dets` on-disk backend, and multi-edge support — graffeo currently models
-*simple* directed graphs (at most one edge per ordered pair). Expect the public
-API to keep moving as these land. The design thinking lives in
+On the roadmap: minimum spanning trees, negative-weight shortest paths
+(Bellman-Ford), a `dets` on-disk backend, and multi-edge support — graffeo
+currently models *simple* directed graphs (at most one edge per ordered pair).
+Expect the public API to keep moving as these land. The design thinking lives in
 [`docs/design/`](docs/design/).
 
 ## Build

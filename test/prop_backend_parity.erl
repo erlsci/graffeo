@@ -10,7 +10,8 @@ read-half and algorithm parity.
     prop_read_half_parity/0,
     prop_topsort_parity/0,
     prop_components_stdlib_parity/0,
-    prop_get_short_path_stdlib_parity/0
+    prop_get_short_path_stdlib_parity/0,
+    prop_astar_vs_dijkstra/0
 ]).
 
 prop_read_half_parity() ->
@@ -82,6 +83,25 @@ prop_get_short_path_stdlib_parity() ->
                             is_valid_path(DigraphG, GR);
                     _ ->
                         false
+                end,
+            digraph:delete(DRef),
+            Result
+        end
+    ).
+
+prop_astar_vs_dijkstra() ->
+    ?FORALL(
+        {Edges, Target},
+        {edge_list(), vertex_gen()},
+        begin
+            {MapG, _DigraphG, DRef} = build_both(Edges),
+            {Dist, _} = graffeo:dijkstra(MapG, a),
+            AstarResult = graffeo:astar(MapG, a, Target),
+            Result =
+                case {maps:find(Target, Dist), AstarResult} of
+                    {error, none} -> true;
+                    {{ok, DijkDist}, {ok, _Path, AstarCost}} -> abs(DijkDist - AstarCost) < 1.0e-9;
+                    _ -> false
                 end,
             digraph:delete(DRef),
             Result
