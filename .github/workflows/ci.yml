@@ -15,14 +15,14 @@ jobs:
 
     strategy:
       matrix:
-        otp_version: [25, 26, 27, 28]
+        otp_version: [27, 28]
 
     steps:
     - uses: actions/checkout@v4
     - uses: erlef/setup-beam@v1
       with:
         otp-version: ${{ matrix.otp_version }}
-        rebar3-version: ${{ matrix.otp_version >= 26 && '3.25' || '3.22' }}
+        rebar3-version: '3.25'
     - name: Check rebar3 Version
       run: rebar3 --version
     - name: Compile
@@ -35,12 +35,14 @@ jobs:
       run: rebar3 xref
 
     - name: EUnit Tests
-      run: rebar3 eunit -v
+      run: rebar3 eunit --cover
     - name: Common Test
-      run: rebar3 ct -v
+      run: rebar3 ct --cover
     - name: PropEr Tests
       run: rebar3 proper -c
     - name: Dialyzer
       run: rebar3 dialyzer
     - name: Test Coverage
-      run: rebar3 as test cover -v --min_coverage=90
+      run: |
+        rebar3 cover
+        escript scripts/check_coverage.escript

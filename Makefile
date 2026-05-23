@@ -1,4 +1,4 @@
-.PHONY: all compile clean test dialyzer xref format lint docs console check coverage
+.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage
 
 REBAR := rebar3
 APP_NAME := graffeo
@@ -36,8 +36,11 @@ lint:
 console:
 	@$(REBAR) shell
 
-check: clean compile xref dialyzer lint coverage
+check: clean compile format-check xref dialyzer lint coverage
 	@echo "All checks passed!"
+
+format-check:
+	@$(REBAR) fmt --check
 
 # Testing helpers
 test-unit:
