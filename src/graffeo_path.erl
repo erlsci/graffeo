@@ -50,7 +50,7 @@ dijkstra(Backend, Ref, Source, Opts) ->
 
 -doc "A* with default cost (stored weight) and zero heuristic (degenerates to Dijkstra).".
 -spec astar(module(), term(), graffeo:vertex(), graffeo:vertex(), [graffeo:vertex()]) ->
-    {ok, [graffeo:vertex()], number()} | none.
+    {ok, [graffeo:vertex(), ...], number()} | none.
 astar(B, R, Source, Target, Vs) ->
     astar(B, R, Source, Target, Vs, #{}).
 
@@ -65,7 +65,7 @@ admissible (never overestimate the true remaining cost) for the result
 to be optimal. The default-zero heuristic always satisfies admissibility.
 """.
 -spec astar(module(), term(), graffeo:vertex(), graffeo:vertex(), [graffeo:vertex()], map()) ->
-    {ok, [graffeo:vertex()], number()} | none.
+    {ok, [graffeo:vertex(), ...], number()} | none.
 astar(B, R, Source, Target, _Vs0, Opts) ->
     CostFn = maps:get(cost, Opts, fun default_cost/1),
     HFn = maps:get(heuristic, Opts, fun(_) -> 0.0 end),
@@ -87,7 +87,7 @@ astar(B, R, Source, Target, _Vs0, Opts) ->
     dist_map(),
     prev_map()
 ) ->
-    {ok, [graffeo:vertex()], number()} | none.
+    {ok, [graffeo:vertex(), ...], number()} | none.
 astar_loop(B, R, Target, CostFn, HFn, Queue, GScore, CameFrom) ->
     case gb_sets:is_empty(Queue) of
         true ->
@@ -136,13 +136,13 @@ reconstruct_path(V, CameFrom, Acc) ->
 
 -doc "DFS path from `V1` to `V2`, or `false`.".
 -spec get_path(module(), term(), graffeo:vertex(), graffeo:vertex()) ->
-    [graffeo:vertex()] | false.
+    [graffeo:vertex(), ...] | false.
 get_path(B, R, V1, V2) ->
     one_path(B:out_neighbours(R, V1), V2, [], [V1], [V1], 1, B, R, 1).
 
 -doc "A cycle through `V` (DFS), or `false`.".
 -spec get_cycle(module(), term(), graffeo:vertex()) ->
-    [graffeo:vertex()] | false.
+    [graffeo:vertex(), ...] | false.
 get_cycle(B, R, V) ->
     case one_path(B:out_neighbours(R, V), V, [], [V], [V], 2, B, R, 1) of
         false ->
@@ -160,7 +160,7 @@ Shortest (fewest-edges) path from `V1` to `V2` (BFS), or `false`.
 When `V1 =:= V2`, returns the shortest cycle through `V`.
 """.
 -spec get_short_path(module(), term(), graffeo:vertex(), graffeo:vertex()) ->
-    [graffeo:vertex()] | false.
+    [graffeo:vertex(), ...] | false.
 get_short_path(B, R, V1, V2) ->
     Visited = #{V1 => start},
     Q = queue:new(),
@@ -169,7 +169,7 @@ get_short_path(B, R, V1, V2) ->
 
 -doc "Shortest cycle through `V`, or `false`.".
 -spec get_short_cycle(module(), term(), graffeo:vertex()) ->
-    [graffeo:vertex()] | false.
+    [graffeo:vertex(), ...] | false.
 get_short_cycle(B, R, V) ->
     get_short_path(B, R, V, V).
 
@@ -229,7 +229,7 @@ default_cost(_) -> 1.
     module(),
     term(),
     non_neg_integer()
-) -> [graffeo:vertex()] | false.
+) -> [graffeo:vertex(), ...] | false.
 one_path([W | Ws], W, Cont, Xs, Ps, Prune, B, R, Counter) ->
     case prune_short_path(Counter, Prune) of
         short -> one_path(Ws, W, Cont, Xs, Ps, Prune, B, R, Counter);
@@ -266,7 +266,7 @@ prune_short_path(_, _) -> ok.
 -spec spath(
     queue:queue({graffeo:vertex(), graffeo:vertex()}), module(), term(), graffeo:vertex(), map()
 ) ->
-    [graffeo:vertex()] | false.
+    [graffeo:vertex(), ...] | false.
 spath(Q, B, R, Sink, Visited) ->
     case queue:out(Q) of
         {{value, {From, V2}}, Q1} ->

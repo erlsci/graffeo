@@ -262,7 +262,7 @@ With the default zero heuristic, degenerates to Dijkstra.
 admissible (never overestimate) for the result to be optimal.
 """.
 -spec astar(graph(), vertex(), vertex()) ->
-    {ok, [vertex()], number()} | none.
+    {ok, [vertex(), ...], number()} | none.
 astar(#graffeo{backend = B, ref = R}, Source, Target) ->
     graffeo_path:astar(B, R, Source, Target, B:vertices(R)).
 
@@ -271,7 +271,7 @@ A* shortest path with options.
 Options: `#{cost => fun(edge_meta()) -> number(), heuristic => fun(vertex()) -> number()}`.
 """.
 -spec astar(graph(), vertex(), vertex(), map()) ->
-    {ok, [vertex()], number()} | none.
+    {ok, [vertex(), ...], number()} | none.
 astar(#graffeo{backend = B, ref = R}, Source, Target, Opts) ->
     graffeo_path:astar(B, R, Source, Target, B:vertices(R), Opts).
 
@@ -404,7 +404,8 @@ Options: `{keep_labels, boolean()}` (default `true`),
 `{type, inherit | [d_type()]}` (handle backend only; ignored for value).
 Raises `badarg` on malformed options.
 """.
--spec subgraph(graph(), [vertex()], list()) -> graph().
+-spec subgraph(graph(), [vertex()], [{keep_labels, boolean()} | {type, inherit | list()}]) ->
+    graph().
 subgraph(#graffeo{backend = B, ref = R} = G, SubVs, Opts) ->
     graffeo_conn:subgraph(G, B, R, SubVs, Opts).
 
@@ -424,12 +425,12 @@ condensation(#graffeo{backend = B, ref = R} = G) ->
 %%% === Path/cycle queries ===
 
 -doc "DFS path from `V1` to `V2`, or `false`.".
--spec get_path(graph(), vertex(), vertex()) -> [vertex()] | false.
+-spec get_path(graph(), vertex(), vertex()) -> [vertex(), ...] | false.
 get_path(#graffeo{backend = B, ref = R}, V1, V2) ->
     graffeo_path:get_path(B, R, V1, V2).
 
 -doc "A cycle through `V` (DFS), or `false`.".
--spec get_cycle(graph(), vertex()) -> [vertex()] | false.
+-spec get_cycle(graph(), vertex()) -> [vertex(), ...] | false.
 get_cycle(#graffeo{backend = B, ref = R}, V) ->
     graffeo_path:get_cycle(B, R, V).
 
@@ -439,12 +440,12 @@ Shortest (fewest-edges) path from `V1` to `V2` (BFS), or `false`.
 When `V1 =:= V2`, returns the shortest cycle through `V`.
 This is an **unweighted** path — edge weights are ignored.
 """.
--spec get_short_path(graph(), vertex(), vertex()) -> [vertex()] | false.
+-spec get_short_path(graph(), vertex(), vertex()) -> [vertex(), ...] | false.
 get_short_path(#graffeo{backend = B, ref = R}, V1, V2) ->
     graffeo_path:get_short_path(B, R, V1, V2).
 
 -doc "Shortest cycle through `V` (BFS), or `false`.".
--spec get_short_cycle(graph(), vertex()) -> [vertex()] | false.
+-spec get_short_cycle(graph(), vertex()) -> [vertex(), ...] | false.
 get_short_cycle(#graffeo{backend = B, ref = R}, V) ->
     graffeo_path:get_short_cycle(B, R, V).
 
