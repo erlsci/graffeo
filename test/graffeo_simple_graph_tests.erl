@@ -55,4 +55,22 @@ parallel_edge_wrap_parity_test() ->
     ),
     ?assertEqual(graffeo:in_degree(MapG3, y), graffeo:in_degree(DigG, y)),
     ?assertEqual(graffeo:out_degree(MapG3, x), graffeo:out_degree(DigG, x)),
+    %% F-34: edge_meta parity — last-writer (weight 30) on both backends
+    ?assertEqual({ok, #{weight => 30}}, graffeo:edge_meta(MapG3, x, y)),
+    ?assertEqual({ok, #{weight => 30}}, graffeo:edge_meta(DigG, x, y)),
+    digraph:delete(D).
+
+%% F-34: edge_meta is deterministic on a wrapped multigraph
+edge_meta_deterministic_test() ->
+    D = digraph:new(),
+    digraph:add_vertex(D, a),
+    digraph:add_vertex(D, b),
+    digraph:add_edge(D, a, b, #{weight => 1}),
+    digraph:add_edge(D, a, b, #{weight => 2}),
+    digraph:add_edge(D, a, b, #{weight => 3}),
+    G = graffeo_digraph:wrap(D),
+    R1 = graffeo:edge_meta(G, a, b),
+    R2 = graffeo:edge_meta(G, a, b),
+    ?assertEqual(R1, R2),
+    ?assertEqual({ok, #{weight => 3}}, R1),
     digraph:delete(D).

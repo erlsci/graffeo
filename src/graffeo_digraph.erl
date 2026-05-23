@@ -152,12 +152,12 @@ vertices(Ref) ->
 -doc "Vertices reachable from `V` via outgoing edges (deduplicated).".
 -spec out_neighbours(digraph:graph(), graffeo:vertex()) -> [graffeo:vertex()].
 out_neighbours(Ref, V) ->
-    lists:usort(digraph:out_neighbours(Ref, V)).
+    lists:uniq(digraph:out_neighbours(Ref, V)).
 
 -doc "Vertices that reach `V` via incoming edges (deduplicated).".
 -spec in_neighbours(digraph:graph(), graffeo:vertex()) -> [graffeo:vertex()].
 in_neighbours(Ref, V) ->
-    lists:usort(digraph:in_neighbours(Ref, V)).
+    lists:uniq(digraph:in_neighbours(Ref, V)).
 
 -doc "Number of distinct incoming neighbours of `V`.".
 -spec in_degree(digraph:graph(), graffeo:vertex()) -> non_neg_integer().
@@ -184,14 +184,17 @@ no_vertices(Ref) ->
 -doc """
 Get edge metadata between two vertices.
 
-If parallel edges exist (e.g. from a wrapped raw `digraph`),
-returns the metadata of the highest-numbered edge (last-writer-wins).
+If parallel edges exist (only possible via `wrap/1` of an external
+multigraph), returns the metadata of the edge with the highest edge
+ID by Erlang term order. For stdlib `digraph` this is the
+most-recently-added edge, matching the map backend's last-writer-wins.
+The selection is deterministic and independent of traversal order.
 """.
 -spec edge_meta(digraph:graph(), graffeo:vertex(), graffeo:vertex()) ->
     {ok, graffeo:edge_meta()} | error.
 edge_meta(Ref, From, To) ->
     Edges = digraph:out_edges(Ref, From),
-    find_last_edge_meta(Ref, Edges, To).
+    find_max_edge_meta(Ref, Edges, To).
 
 -doc "Get the label of a vertex.".
 -spec vertex_label(digraph:graph(), graffeo:vertex()) ->
@@ -223,9 +226,9 @@ remove_edges(Ref, From, To) ->
         Edges
     ).
 
--spec find_last_edge_meta(digraph:graph(), [digraph:edge()], graffeo:vertex()) ->
+-spec find_max_edge_meta(digraph:graph(), [digraph:edge()], graffeo:vertex()) ->
     {ok, graffeo:edge_meta()} | error.
-find_last_edge_meta(Ref, Edges, To) ->
+find_max_edge_meta(Ref, Edges, To) ->
     Matching = [
         {E, Meta}
      || E <- Edges,
@@ -237,7 +240,7 @@ find_last_edge_meta(Ref, Edges, To) ->
         [] ->
             error;
         _ ->
-            {_, Meta} = lists:last(Matching),
+            {_, Meta} = lists:max(Matching),
             {ok, Meta}
     end.
 

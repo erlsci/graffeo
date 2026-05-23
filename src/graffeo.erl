@@ -42,6 +42,24 @@ users touch.
     top_k_by_degree/2
 ]).
 
+%% Connectivity / DFS-family (ported from digraph_utils)
+-export([
+    components/1,
+    strong_components/1,
+    cyclic_strong_components/1,
+    reachable/2,
+    reachable_neighbours/2,
+    reaching/2,
+    reaching_neighbours/2,
+    is_acyclic/1,
+    loop_vertices/1,
+    preorder/1,
+    postorder/1,
+    is_tree/1,
+    is_arborescence/1,
+    arborescence_root/1
+]).
+
 -export_type([
     graph/0,
     vertex/0,
@@ -238,3 +256,75 @@ Returns `[{Vertex, Degree}]`.
     [{vertex(), non_neg_integer()}].
 top_k_by_degree(#graffeo{backend = B, ref = R}, K) ->
     graffeo_traverse:top_k_by_degree(B, R, B:vertices(R), K).
+
+%%% === Connectivity / DFS-family ===
+
+-doc "Connected components (undirected). Returns `[[vertex()]]`.".
+-spec components(graph()) -> [[vertex()]].
+components(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:components(B, R, B:vertices(R)).
+
+-doc "Strongly connected components. Returns `[[vertex()]]`.".
+-spec strong_components(graph()) -> [[vertex()]].
+strong_components(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:strong_components(B, R, B:vertices(R)).
+
+-doc "Strongly connected components that contain a cycle.".
+-spec cyclic_strong_components(graph()) -> [[vertex()]].
+cyclic_strong_components(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:cyclic_strong_components(B, R, B:vertices(R)).
+
+-doc "Vertices reachable from `Vs` (including `Vs`).".
+-spec reachable(graph(), [vertex()]) -> [vertex()].
+reachable(#graffeo{backend = B, ref = R}, Vs) ->
+    graffeo_conn:reachable(B, R, B:vertices(R), Vs).
+
+-doc "Vertices reachable from `Vs` (excluding `Vs` unless in a cycle).".
+-spec reachable_neighbours(graph(), [vertex()]) -> [vertex()].
+reachable_neighbours(#graffeo{backend = B, ref = R}, Vs) ->
+    graffeo_conn:reachable_neighbours(B, R, B:vertices(R), Vs).
+
+-doc "Vertices from which `Vs` are reachable (including `Vs`).".
+-spec reaching(graph(), [vertex()]) -> [vertex()].
+reaching(#graffeo{backend = B, ref = R}, Vs) ->
+    graffeo_conn:reaching(B, R, B:vertices(R), Vs).
+
+-doc "Vertices from which `Vs` are reachable (excluding `Vs` unless in a cycle).".
+-spec reaching_neighbours(graph(), [vertex()]) -> [vertex()].
+reaching_neighbours(#graffeo{backend = B, ref = R}, Vs) ->
+    graffeo_conn:reaching_neighbours(B, R, B:vertices(R), Vs).
+
+-doc "True if the graph is acyclic (no cycles).".
+-spec is_acyclic(graph()) -> boolean().
+is_acyclic(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:is_acyclic(B, R, B:vertices(R)).
+
+-doc "Vertices with a self-loop.".
+-spec loop_vertices(graph()) -> [vertex()].
+loop_vertices(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:loop_vertices(B, R, B:vertices(R)).
+
+-doc "Vertices in DFS preorder.".
+-spec preorder(graph()) -> [vertex()].
+preorder(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:preorder(B, R, B:vertices(R)).
+
+-doc "Vertices in DFS postorder.".
+-spec postorder(graph()) -> [vertex()].
+postorder(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:postorder(B, R, B:vertices(R)).
+
+-doc "True if the graph is a tree (undirected, connected, acyclic).".
+-spec is_tree(graph()) -> boolean().
+is_tree(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:is_tree(B, R, B:vertices(R)).
+
+-doc "True if the graph is an arborescence (rooted tree, directed).".
+-spec is_arborescence(graph()) -> boolean().
+is_arborescence(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:is_arborescence(B, R, B:vertices(R)).
+
+-doc "Returns `{yes, Root}` if the graph is an arborescence, `no` otherwise.".
+-spec arborescence_root(graph()) -> {yes, vertex()} | no.
+arborescence_root(#graffeo{backend = B, ref = R}) ->
+    graffeo_conn:arborescence_root(B, R, B:vertices(R)).
