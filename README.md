@@ -43,13 +43,76 @@ The algorithms are shared across both tiers, because reading a graph is the
 same whether it is a value or a handle. The difference shows up only where it
 genuinely matters — in how you build and change a graph.
 
+## Usage
+
+Both tiers share one algorithm layer: you build a graph one of two ways, then
+call the same `graffeo:*` functions over it.
+
+### Functional tier (map-backed value, the default)
+
+```erlang
+%% Every build step returns a NEW graph; the original is untouched.
+G0 = graffeo:new(),
+G1 = graffeo:add_edge(G0, a, b, #{weight => 1}),
+G2 = graffeo:add_edge(G1, b, c, #{weight => 2}),
+G3 = graffeo:add_edge(G2, a, c, #{weight => 10}),
+G  = graffeo:add_edge(G3, c, d, #{weight => 3}),
+
+{ok, _Order}  = graffeo:topsort(G),       %% a valid topological order, e.g. [a, b, c, d]
+{Dist, _Prev} = graffeo:dijkstra(G, a),   %% #{a => 0, b => 1, c => 3, d => 6}
+3             = graffeo:degree(G, c),      %% in: a, b (2) + out: d (1)
+[{a, 0} | _]  = graffeo:bfs(G, a).         %% [{Vertex, Distance}], breadth-first from the source
+```
+
+Because the graph is a plain value, `G0` still has zero edges after all of the
+above — nothing was mutated, and `G` can be pattern-matched or sent between
+processes like any other term.
+
+### Handle tier (`digraph`/ETS, transparent and mutable)
+
+```erlang
+%% A mutable handle over digraph — ETS-backed and owned by your process.
+D = digraph:new(),
+graffeo_digraph:add_edge(D, a, b, #{weight => 1}),
+graffeo_digraph:add_edge(D, b, c, #{weight => 2}),
+graffeo_digraph:add_edge(D, a, c, #{weight => 10}),
+graffeo_digraph:add_edge(D, c, d, #{weight => 3}),
+
+%% Wrap once to get the algorithm layer — the SAME graffeo:* calls.
+G = graffeo_digraph:wrap(D),
+{ok, _Order}  = graffeo:topsort(G),
+{Dist, _Prev} = graffeo:dijkstra(G, a),   %% #{a => 0, b => 1, c => 3, d => 6}
+
+digraph:delete(D).   %% you own the handle's lifecycle
+```
+
+`graffeo_digraph:wrap/1` also lifts a `digraph` you already have — it just adds
+the algorithm layer on top and changes nothing about how the handle behaves.
+
 ## Status
 
-Early. graffeo is in the design phase: the architecture and scope are written
-down, but the implementation has not begun. The thinking lives in
-[`docs/design/`](docs/design/), starting with the project prospectus and the
-project-definition document. Expect the public API to move as the first vertical
-slice is built.
+**0.1.0 — the first vertical slice.** graffeo is young but real, and ready to
+try. Implemented, and tested across *both* tiers:
+
+- the graph-access behaviour and its two backends — the functional map value
+  (default) and the `digraph`/ETS handle;
+- topological sort;
+- weighted shortest paths (Dijkstra, with a pluggable cost function);
+- breadth-first traversal with direction (`out`/`in`/`both`) and an edge-type
+  filter, returning distances;
+- degree metrics — in/out/total degree, normalised degree centrality, top-k;
+- first-class reverse traversal.
+
+The test suite runs every algorithm over both backends (eunit + Common Test +
+PropEr), so the "one algorithm layer, many backends" claim is enforced rather
+than merely asserted.
+
+Not here yet, and on the near roadmap: the rest of the `digraph_utils` family
+(components, strong components, reachability), A\*, minimum spanning trees, a
+`dets` on-disk backend, and multi-edge support — graffeo currently models
+*simple* directed graphs (at most one edge per ordered pair). Expect the public
+API to keep moving as these land. The design thinking lives in
+[`docs/design/`](docs/design/).
 
 ## Build
 
