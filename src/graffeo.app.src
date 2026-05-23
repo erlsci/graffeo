@@ -2,7 +2,6 @@
     {description, "An Erlang graph library — digraph and then some"},
     {vsn, "0.1.0"},
     {registered, []},
-    {mod, {graffeo_app, []}},
     {applications, [
         kernel,
         stdlib
@@ -11,4 +10,4 @@
     {modules, []},
     {licenses, ["Apache-2.0"]},
     {links, []}
- ]}.
+]}.
