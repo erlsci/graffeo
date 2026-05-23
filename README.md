@@ -1,6 +1,7 @@
 # graffeo
 
 [![Build Status][gh-actions-badge]][gh-actions]
+[![Coverage][coverage-badge]][project]
 [![][tag-badge]][tag]
 
 [![Project Logo][logo]][logo-large]
@@ -99,7 +100,8 @@ handle back when you need raw `digraph:*` access.
 *entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
 every function runs over *both* tiers — the functional map value (default) and
 the `digraph`/ETS handle. All of the following is implemented and tested (eunit
-+ Common Test + PropEr):
+
+- Common Test + PropEr):
 
 **Building & access**
 
@@ -163,8 +165,10 @@ Apache License 2.0. See [LICENSE.md](LICENSE.md).
 
 [//]: ---Named-Links---
 
+[project]: https://github.com/erlsci/graffeo
 [logo]: priv/images/logo.png
 [logo-large]: priv/images/logo-large.png
+[coverage-badge]: https://img.shields.io/badge/coverage-95%25-brightgreen
 [gh-actions-badge]: https://github.com/erlsci/graffeo/workflows/ci/badge.svg
 [gh-actions]: https://github.com/erlsci/graffeo/actions?query=workflow%3Aci
 [tag-badge]: https://img.shields.io/github/tag/erlsci/graffeo.svg
