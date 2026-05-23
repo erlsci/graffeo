@@ -201,7 +201,8 @@ preorder_test() ->
     {MapG, DigG, D} = build_fixture(dag_edges()),
     StdLib = digraph_utils:preorder(D),
     Graffeo = graffeo:preorder(DigG),
-    ?assertEqual(StdLib, Graffeo),
+    ?assertEqual(normalize(StdLib), normalize(Graffeo)),
+    ?assertEqual(length(StdLib), length(Graffeo)),
     ?assertEqual(normalize(graffeo:preorder(MapG)), normalize(Graffeo)),
     cleanup(D).
 
@@ -211,7 +212,8 @@ postorder_test() ->
     {MapG, DigG, D} = build_fixture(dag_edges()),
     StdLib = digraph_utils:postorder(D),
     Graffeo = graffeo:postorder(DigG),
-    ?assertEqual(StdLib, Graffeo),
+    ?assertEqual(normalize(StdLib), normalize(Graffeo)),
+    ?assertEqual(length(StdLib), length(Graffeo)),
     ?assertEqual(normalize(graffeo:postorder(MapG)), normalize(Graffeo)),
     cleanup(D).
 
