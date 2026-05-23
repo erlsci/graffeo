@@ -10,8 +10,6 @@ view: at most one edge per ordered `(From, To)` pair.
 -behaviour(graffeo_backend).
 -behaviour(graffeo_builder).
 
--include("graffeo.hrl").
-
 %% Construction / lifecycle (envelope-based)
 -export([
     new/0,
@@ -255,10 +253,11 @@ build_add_edge(G, From, To, Meta) ->
 %%% --- Internal ---
 
 -spec require_handle(atom(), graffeo:graph()) -> digraph:graph().
-require_handle(_Op, #graffeo{backend = ?MODULE, ref = D}) ->
-    D;
-require_handle(Op, #graffeo{backend = Backend}) ->
-    erlang:error({handle_only, Op, Backend}).
+require_handle(Op, G) ->
+    case graffeo:backend(G) of
+        ?MODULE -> graffeo:extract_ref(?MODULE, G);
+        Other -> erlang:error({handle_only, Op, Other})
+    end.
 
 -spec remove_edges(digraph:graph(), graffeo:vertex(), graffeo:vertex()) -> ok.
 remove_edges(Ref, From, To) ->

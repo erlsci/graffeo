@@ -14,8 +14,8 @@ users touch.
     add_edge/3, add_edge/4
 ]).
 
-%% Internal: envelope construction for backends
--export([wrap_ref/2]).
+%% Internal: envelope access for backends
+-export([wrap_ref/2, extract_ref/2, backend/1]).
 
 %% Read accessors
 -export([
@@ -102,6 +102,18 @@ users touch.
 -spec wrap_ref(module(), term()) -> graph().
 wrap_ref(Backend, Ref) ->
     #graffeo{backend = Backend, ref = Ref}.
+
+-doc false.
+-spec extract_ref(module(), graph()) -> term().
+extract_ref(Expected, #graffeo{backend = Expected, ref = Ref}) ->
+    Ref;
+extract_ref(Expected, #graffeo{backend = Actual}) ->
+    erlang:error({backend_mismatch, Expected, Actual}).
+
+-doc false.
+-spec backend(graph()) -> module().
+backend(#graffeo{backend = B}) ->
+    B.
 
 %%% === Tier-1 constructors ===
 
