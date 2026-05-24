@@ -53,10 +53,15 @@ the ones neither `digraph` nor `digraph_utils` provide:
 | `source_vertices/1` | Vertices with no incoming edges |
 | `sink_vertices/1` | Vertices with no outgoing edges |
 
-*More on the way* — an edge-induced subgraph (`filter_edges/2`) and vertex
-contraction (`contract/2,3`) are landing next, with minimum spanning trees,
-negative-weight shortest paths (Bellman-Ford), and the `dets` backend on the
-roadmap.
+graffeo also carries the *entire* `digraph` / `digraph_utils` surface — topological
+sort, (strongly) connected components, reachability, path and cycle queries, `subgraph`
+and `condensation` — over all four backends, each checked for **exact parity** with its
+stdlib counterpart *and* **cross-tier parity** between backends. "One algorithm layer,
+many backends" is enforced, not merely asserted.
+
+On the roadmap: minimum spanning trees, negative-weight shortest paths (Bellman-Ford),
+and multi-edge support — graffeo currently models *simple* directed graphs (at most one
+edge per ordered pair).
 
 ## Usage
 
@@ -180,68 +185,6 @@ decides. `open/2` takes `#{storage => disc_copies | ram_copies | disc_only_copie
 nodes => [node()], majority => boolean()}`; multi-node replication rides the `nodes`
 option, but its partition behaviour is Mnesia's own — use it knowingly. Mnesia's data
 directory comes from the same `data_dir` config as `graffeo_dets`.
-
-## Status
-
-**0.1.0 — full stdlib parity, and then some.** graffeo now implements the
-*entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
-every function runs over all four backends — the map value (default), the ETS handle
-(`graffeo_ets`), the DETS on-disk handle (`graffeo_dets`), and the Mnesia
-transactional/replicated handle (`graffeo_mnesia`). All of the following is implemented and tested (eunit, Common Test + PropEr):
-
-**Building & access**
-
-- the graph-access behaviour and its four backends — the map value (default), the
-  ETS handle (`graffeo_ets`), the DETS on-disk handle (`graffeo_dets`), and the
-  Mnesia transactional/replicated handle (`graffeo_mnesia`);
-- vertices and edges with labels and edge metadata; in/out neighbours;
-- handle-tier mutation in one namespace — `add_vertex/2,3`, `add_edge/3,4`,
-  `del_vertex/2`, `del_vertices/2`, `del_edge/3`, `del_edges/2`, plus `wrap/1`,
-  `unwrap/1`, and `delete/1`.
-
-**Shortest paths & weights**
-
-- Dijkstra (`dijkstra/2,3`) with a pluggable cost function;
-- weighted A\* (`astar/3,4`) with a pluggable cost function and an admissible
-  heuristic — the default-zero heuristic degenerates cleanly to Dijkstra.
-
-**Path & cycle queries** (faithful ports of `digraph`)
-
-- `get_path/3`, `get_cycle/2`, `get_short_path/3`, `get_short_cycle/2`,
-  `source_vertices/1`, `sink_vertices/1`.
-
-**Connectivity & DFS family** (faithful ports of `digraph_utils`)
-
-- `components/1`, `strong_components/1`, `cyclic_strong_components/1`;
-- `reachable/2`, `reachable_neighbours/2`, `reaching/2`,
-  `reaching_neighbours/2`;
-- `is_acyclic/1`, `is_tree/1`, `is_arborescence/1`, `arborescence_root/1`,
-  `loop_vertices/1`, `preorder/1`, `postorder/1`.
-
-**Constructive & metrics**
-
-- `subgraph/2,3` and `condensation/1`, each returning a graph of the same
-  backend as its input;
-- breadth-first traversal with direction (`out`/`in`/`both`) and an edge-type
-  filter, returning distances; degree metrics — in/out/total degree, normalised
-  degree centrality, top-k; first-class reverse traversal.
-
-Every ported function is checked for **exact parity** with its stdlib
-counterpart on the handle backend, and for **cross-tier parity** between the two
-backends — so "one algorithm layer, many backends" is enforced, not merely
-asserted. (The one documented exception is `get_short_path/3`, which guarantees
-shortest length, valid path, correct endpoints, and reachability agreement, but
-may pick a different equally-short path than `digraph` when several exist — see
-[`docs/design/`](docs/design/) for why.)
-
-**0.2.0** added the `graffeo_dets` on-disk backend and the `graffeo_mnesia`
-transactional/replicated backend (with `transaction/1` and a configurable `data_dir`),
-an edge-induced subgraph (`filter_edges/2`), vertex contraction (`contract/2,3`), and
-`graffeo:copy/2`. On the roadmap: minimum spanning trees, negative-weight shortest
-paths (Bellman-Ford), and multi-edge support — graffeo currently models *simple*
-directed graphs (at most one edge per ordered pair).
-Expect the public API to keep moving as these land. The design thinking lives in
-[`docs/design/`](docs/design/).
 
 ## Build
 
