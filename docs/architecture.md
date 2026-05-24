@@ -86,6 +86,7 @@ The backend axis is *storage substrate*, mirroring Erlang's own value/handle spl
 | `graffeo_map` | value | a pair of maps | immutable; ops return a new graph; copyable, pattern-matchable, message-passable |
 | `graffeo_ets` | handle | ETS (via stdlib `digraph`) | mutable, process-owned; ops mutate in place and return `ok` |
 | `graffeo_dets` | handle | DETS (on disk) | persistent, on-disk; `new/0` ephemeral, `open/1` named-persistent, `close/1` flush-and-keep |
+| `graffeo_mnesia` | handle | Mnesia (ETS/disc + replication) | transactional + multi-node; `transaction/1`; `new/0` ephemeral (`ram_copies`), `open/1` persistent (`disc_copies`) |
 
 **`graffeo_map`** stores **dual adjacency** — an out-map and an in-map — so
 `in_neighbours/2` and `in_degree/2` are O(degree) rather than requiring a full scan.
@@ -112,6 +113,20 @@ CWD-based `graffeo_data/` → the OS cache dir), so production should set `data_
 graph into an opened backend — the build-in-memory, persist-to-disk path. Constructive
 algorithms (`subgraph`/`condensation`/`filter_edges`/`contract`) over a DETS graph
 raise `{unsupported_on_backend, …}` for now; derive in memory and `copy/2` the result.
+
+**`graffeo_mnesia`** mirrors the same three-table layout on Mnesia (as records) and
+exists for what Mnesia uniquely provides — **transactions and replication** — not
+speed (per `PF-12`, every Mnesia write costs an ETS write plus overhead). Mnesia is a
+node-global singleton, so a graph is a set of *named* tables within one Mnesia
+instance rather than its own files; `new/0` makes ephemeral `ram_copies` tables,
+`open/1` persistent `disc_copies`, and bootstrap respects an already-running Mnesia
+(starting one only if needed, with its dir from `graffeo_config`). The read and write
+paths dispatch on `mnesia:is_transaction/0`: inside `graffeo_mnesia:transaction/1` they
+use locked `mnesia:read`/`write` (atomic mutation, consistent-snapshot reads), outside
+they use dirty ops (fast, lock-free) — one code path, the activity context decides.
+Multi-node replication rides the `nodes` option through to `create_table`; its
+partition behaviour is Mnesia's own, deliberately left to the user (`DIST-14`).
+`copy/2` persists into it; constructive ops are unsupported (as with DETS).
 
 ## Where the algorithms live
 
@@ -198,8 +213,9 @@ tight loops, the indirection is the thing to profile first.
 ## Roadmap
 
 **Delivered in 0.2.0:** the edge-induced subgraph (`filter_edges/2`), vertex
-contraction (`contract/2,3`), `graffeo:copy/2`, and the `graffeo_dets` on-disk backend.
-On the way: minimum spanning trees, negative-weight shortest paths (Bellman-Ford),
-constructive ops over DETS, a `graffeo_mnesia` distributed/transactional backend, and
-multi-edge support. Expect the public API to keep moving until 1.0. Milestone-level design thinking lives
+contraction (`contract/2,3`), `graffeo:copy/2`, the `graffeo_dets` on-disk backend, and
+the `graffeo_mnesia` transactional/replicated backend. On the way: minimum spanning
+trees, negative-weight shortest paths (Bellman-Ford), constructive ops over the disc
+backends, deliberate distributed-Mnesia partition handling, and multi-edge support.
+Expect the public API to keep moving until 1.0. Milestone-level design thinking lives
 under [`docs/design/`](docs/design/).

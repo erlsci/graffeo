@@ -16,6 +16,7 @@
     graffeo_conn,
     graffeo_dets,
     graffeo_ets,
+    graffeo_mnesia,
     graffeo_map,
     graffeo_path,
     graffeo_traverse

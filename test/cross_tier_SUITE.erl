@@ -29,11 +29,13 @@ init_per_testcase(_TC, Config) ->
     MapG = build_map_graph(Edges),
     {DigraphG, DRef} = build_digraph_graph(Edges),
     DetsG = build_dets_graph(MapG),
+    MnesiaG = build_mnesia_graph(MapG),
     [
         {map_g, MapG},
         {digraph_g, DigraphG},
         {digraph_ref, DRef},
         {dets_g, DetsG},
+        {mnesia_g, MnesiaG},
         {edges, Edges}
         | Config
     ].
@@ -43,33 +45,42 @@ end_per_testcase(_TC, Config) ->
     digraph:delete(DRef),
     DetsG = ?config(dets_g, Config),
     graffeo_dets:delete(DetsG),
+    MnesiaG = ?config(mnesia_g, Config),
+    graffeo_mnesia:delete(MnesiaG),
     ok.
 
 topsort_parity(Config) ->
     MapG = ?config(map_g, Config),
     DigraphG = ?config(digraph_g, Config),
     DetsG = ?config(dets_g, Config),
+    MnesiaG = ?config(mnesia_g, Config),
     {ok, MapOrder} = graffeo:topsort(MapG),
     {ok, DigraphOrder} = graffeo:topsort(DigraphG),
     {ok, DetsOrder} = graffeo:topsort(DetsG),
+    {ok, MnesiaOrder} = graffeo:topsort(MnesiaG),
     ?assertEqual(length(MapOrder), length(DigraphOrder)),
     ?assertEqual(length(MapOrder), length(DetsOrder)),
+    ?assertEqual(length(MapOrder), length(MnesiaOrder)),
     assert_valid_topsort(MapG, MapOrder),
     assert_valid_topsort(DigraphG, DigraphOrder),
-    assert_valid_topsort(DetsG, DetsOrder).
+    assert_valid_topsort(DetsG, DetsOrder),
+    assert_valid_topsort(MnesiaG, MnesiaOrder).
 
 dijkstra_parity(Config) ->
     MapG = ?config(map_g, Config),
     DigraphG = ?config(digraph_g, Config),
     DetsG = ?config(dets_g, Config),
+    MnesiaG = ?config(mnesia_g, Config),
     {MapDist, _} = graffeo:dijkstra(MapG, a),
     {DigDist, _} = graffeo:dijkstra(DigraphG, a),
     {DetsDist, _} = graffeo:dijkstra(DetsG, a),
+    {MnesiaDist, _} = graffeo:dijkstra(MnesiaG, a),
     Verts = [a, b, c, d],
     lists:foreach(
         fun(V) ->
             ?assertEqual(maps:get(V, MapDist), maps:get(V, DigDist)),
-            ?assertEqual(maps:get(V, MapDist), maps:get(V, DetsDist))
+            ?assertEqual(maps:get(V, MapDist), maps:get(V, DetsDist)),
+            ?assertEqual(maps:get(V, MapDist), maps:get(V, MnesiaDist))
         end,
         Verts
     ).
@@ -78,35 +89,46 @@ bfs_parity(Config) ->
     MapG = ?config(map_g, Config),
     DigraphG = ?config(digraph_g, Config),
     DetsG = ?config(dets_g, Config),
+    MnesiaG = ?config(mnesia_g, Config),
     MapBFS = lists:sort(graffeo:bfs(MapG, a)),
     DigBFS = lists:sort(graffeo:bfs(DigraphG, a)),
     DetsBFS = lists:sort(graffeo:bfs(DetsG, a)),
+    MnesiaBFS = lists:sort(graffeo:bfs(MnesiaG, a)),
     ?assertEqual(MapBFS, DigBFS),
     ?assertEqual(MapBFS, DetsBFS),
+    ?assertEqual(MapBFS, MnesiaBFS),
     MapBFSIn = lists:sort(graffeo:bfs(MapG, d, #{direction => in})),
     DigBFSIn = lists:sort(graffeo:bfs(DigraphG, d, #{direction => in})),
     DetsBFSIn = lists:sort(graffeo:bfs(DetsG, d, #{direction => in})),
+    MnesiaBFSIn = lists:sort(graffeo:bfs(MnesiaG, d, #{direction => in})),
     ?assertEqual(MapBFSIn, DigBFSIn),
-    ?assertEqual(MapBFSIn, DetsBFSIn).
+    ?assertEqual(MapBFSIn, DetsBFSIn),
+    ?assertEqual(MapBFSIn, MnesiaBFSIn).
 
 degree_parity(Config) ->
     MapG = ?config(map_g, Config),
     DigraphG = ?config(digraph_g, Config),
     DetsG = ?config(dets_g, Config),
+    MnesiaG = ?config(mnesia_g, Config),
     Verts = [a, b, c, d],
     lists:foreach(
         fun(V) ->
             ?assertEqual(graffeo:in_degree(MapG, V), graffeo:in_degree(DigraphG, V)),
             ?assertEqual(graffeo:in_degree(MapG, V), graffeo:in_degree(DetsG, V)),
+            ?assertEqual(graffeo:in_degree(MapG, V), graffeo:in_degree(MnesiaG, V)),
             ?assertEqual(graffeo:out_degree(MapG, V), graffeo:out_degree(DigraphG, V)),
             ?assertEqual(graffeo:out_degree(MapG, V), graffeo:out_degree(DetsG, V)),
+            ?assertEqual(graffeo:out_degree(MapG, V), graffeo:out_degree(MnesiaG, V)),
             ?assertEqual(graffeo:degree(MapG, V), graffeo:degree(DigraphG, V)),
             ?assertEqual(graffeo:degree(MapG, V), graffeo:degree(DetsG, V)),
+            ?assertEqual(graffeo:degree(MapG, V), graffeo:degree(MnesiaG, V)),
             MapC = graffeo:degree_centrality(MapG, V),
             DigC = graffeo:degree_centrality(DigraphG, V),
             DetsC = graffeo:degree_centrality(DetsG, V),
+            MnesiaC = graffeo:degree_centrality(MnesiaG, V),
             ?assert(abs(MapC - DigC) < 0.001),
-            ?assert(abs(MapC - DetsC) < 0.001)
+            ?assert(abs(MapC - DetsC) < 0.001),
+            ?assert(abs(MapC - MnesiaC) < 0.001)
         end,
         Verts
     ).
@@ -115,43 +137,36 @@ read_half_parity(Config) ->
     MapG = ?config(map_g, Config),
     DigraphG = ?config(digraph_g, Config),
     DetsG = ?config(dets_g, Config),
-    ?assertEqual(
-        lists:sort(graffeo:vertices(MapG)),
-        lists:sort(graffeo:vertices(DigraphG))
-    ),
-    ?assertEqual(
-        lists:sort(graffeo:vertices(MapG)),
-        lists:sort(graffeo:vertices(DetsG))
-    ),
+    MnesiaG = ?config(mnesia_g, Config),
+    MVs = lists:sort(graffeo:vertices(MapG)),
+    ?assertEqual(MVs, lists:sort(graffeo:vertices(DigraphG))),
+    ?assertEqual(MVs, lists:sort(graffeo:vertices(DetsG))),
+    ?assertEqual(MVs, lists:sort(graffeo:vertices(MnesiaG))),
     ?assertEqual(graffeo:no_vertices(MapG), graffeo:no_vertices(DigraphG)),
     ?assertEqual(graffeo:no_vertices(MapG), graffeo:no_vertices(DetsG)),
+    ?assertEqual(graffeo:no_vertices(MapG), graffeo:no_vertices(MnesiaG)),
     ?assertEqual(graffeo:no_edges(MapG), graffeo:no_edges(DigraphG)),
     ?assertEqual(graffeo:no_edges(MapG), graffeo:no_edges(DetsG)),
+    ?assertEqual(graffeo:no_edges(MapG), graffeo:no_edges(MnesiaG)),
     lists:foreach(
         fun(V) ->
-            ?assertEqual(
-                lists:sort(graffeo:out_neighbours(MapG, V)),
-                lists:sort(graffeo:out_neighbours(DigraphG, V))
-            ),
-            ?assertEqual(
-                lists:sort(graffeo:out_neighbours(MapG, V)),
-                lists:sort(graffeo:out_neighbours(DetsG, V))
-            ),
-            ?assertEqual(
-                lists:sort(graffeo:in_neighbours(MapG, V)),
-                lists:sort(graffeo:in_neighbours(DigraphG, V))
-            ),
-            ?assertEqual(
-                lists:sort(graffeo:in_neighbours(MapG, V)),
-                lists:sort(graffeo:in_neighbours(DetsG, V))
-            ),
-            ?assertEqual(graffeo:edge_meta(MapG, V, V), graffeo:edge_meta(DetsG, V, V)),
-            ?assertEqual(graffeo:vertex_label(MapG, V), graffeo:vertex_label(DetsG, V))
+            MOut = lists:sort(graffeo:out_neighbours(MapG, V)),
+            ?assertEqual(MOut, lists:sort(graffeo:out_neighbours(DigraphG, V))),
+            ?assertEqual(MOut, lists:sort(graffeo:out_neighbours(DetsG, V))),
+            ?assertEqual(MOut, lists:sort(graffeo:out_neighbours(MnesiaG, V))),
+            MIn = lists:sort(graffeo:in_neighbours(MapG, V)),
+            ?assertEqual(MIn, lists:sort(graffeo:in_neighbours(DigraphG, V))),
+            ?assertEqual(MIn, lists:sort(graffeo:in_neighbours(DetsG, V))),
+            ?assertEqual(MIn, lists:sort(graffeo:in_neighbours(MnesiaG, V))),
+            ?assertEqual(graffeo:vertex_label(MapG, V), graffeo:vertex_label(DetsG, V)),
+            ?assertEqual(graffeo:vertex_label(MapG, V), graffeo:vertex_label(MnesiaG, V))
         end,
         [a, b, c, d]
     ),
     ?assertEqual(graffeo:edge_meta(MapG, a, b), graffeo:edge_meta(DetsG, a, b)),
-    ?assertEqual(graffeo:edge_meta(MapG, b, c), graffeo:edge_meta(DetsG, b, c)).
+    ?assertEqual(graffeo:edge_meta(MapG, a, b), graffeo:edge_meta(MnesiaG, a, b)),
+    ?assertEqual(graffeo:edge_meta(MapG, b, c), graffeo:edge_meta(DetsG, b, c)),
+    ?assertEqual(graffeo:edge_meta(MapG, b, c), graffeo:edge_meta(MnesiaG, b, c)).
 
 %%% --- helpers ---
 
@@ -179,6 +194,11 @@ build_digraph_graph(Edges) ->
 build_dets_graph(MapG) ->
     Name = "ct_parity_" ++ integer_to_list(erlang:unique_integer([positive])),
     graffeo_dets:from_graph(MapG, Name).
+
+build_mnesia_graph(MapG) ->
+    Name = "ct_mnesia_" ++ integer_to_list(erlang:unique_integer([positive])),
+    G = graffeo_mnesia:open(Name, #{storage => ram_copies}),
+    graffeo:copy(MapG, G).
 
 assert_valid_topsort(G, Order) ->
     Pos = maps:from_list(lists:zip(Order, lists:seq(1, length(Order)))),

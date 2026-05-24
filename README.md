@@ -34,8 +34,10 @@ Structurally, it adds a thin seam and a choice of storage. A graph-access
 **backend**: the immutable, map-backed *value* backend `graffeo_map` (copyable,
 pattern-matchable, message-passable); an ETS-backed, process-owned *handle* backend
 `graffeo_ets` (mutable, implemented over the stdlib `digraph`); and a persistent,
-DETS-backed *handle* backend `graffeo_dets` (on disk, survives restarts). The design
-rationale lives in [`docs/architecture.md`](docs/architecture.md).
+DETS-backed *handle* backend `graffeo_dets` (on disk, survives restarts); and a
+transactional, replicated *handle* backend `graffeo_mnesia` (Mnesia-backed — atomic
+multi-mutation and multi-node graphs). The design rationale lives in
+[`docs/architecture.md`](docs/architecture.md).
 
 And it adds the graph-theoretic functions you end up hand-rolling on real projects —
 the ones neither `digraph` nor `digraph_utils` provide:
@@ -146,17 +148,52 @@ as: an explicit `data_dir` in `sys.config` → `priv/data` (if writable) → a C
 [{graffeo, [{data_dir, "/var/lib/myapp/graffeo"}]}].
 ```
 
+### Transactional / replicated tier (`graffeo_mnesia`)
+
+`graffeo_mnesia` is the same handle experience again, backed by Mnesia — reach for it
+when you need **atomic multi-mutation transactions** or **multi-node replicated**
+graphs (for plain persistence, `graffeo_dets` is lighter). `new/0` is ephemeral
+(`ram_copies`); `open/1` is persistent (`disc_copies`).
+
+```erlang
+G = graffeo_mnesia:new(),
+graffeo_mnesia:add_edge(G, a, b, #{weight => 1}),
+{Dist, _Prev} = graffeo:dijkstra(G, a),   %% the SAME graffeo:* algorithms
+graffeo_mnesia:delete(G).
+```
+
+Wrap a batch of mutations — or a read — in `transaction/1` for atomicity and a
+consistent snapshot:
+
+```erlang
+graffeo_mnesia:transaction(fun() ->
+    graffeo_mnesia:add_edge(G, a, b, #{weight => 1}),
+    graffeo_mnesia:add_edge(G, b, c, #{weight => 2})
+end),                                       %% atomic: both edges, or neither
+{atomic, {ok, _Order}} =
+    graffeo_mnesia:transaction(fun() -> graffeo:topsort(G) end).
+```
+
+Inside `transaction/1` the read and write paths automatically use locked Mnesia
+operations; outside, they're dirty (fast, lock-free) — the same code, the context
+decides. `open/2` takes `#{storage => disc_copies | ram_copies | disc_only_copies,
+nodes => [node()], majority => boolean()}`; multi-node replication rides the `nodes`
+option, but its partition behaviour is Mnesia's own — use it knowingly. Mnesia's data
+directory comes from the same `data_dir` config as `graffeo_dets`.
+
 ## Status
 
 **0.1.0 — full stdlib parity, and then some.** graffeo now implements the
 *entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
-every function runs over all three backends — the map value (default), the ETS-backed
-handle (`graffeo_ets`), and the DETS on-disk handle (`graffeo_dets`). All of the following is implemented and tested (eunit, Common Test + PropEr):
+every function runs over all four backends — the map value (default), the ETS handle
+(`graffeo_ets`), the DETS on-disk handle (`graffeo_dets`), and the Mnesia
+transactional/replicated handle (`graffeo_mnesia`). All of the following is implemented and tested (eunit, Common Test + PropEr):
 
 **Building & access**
 
-- the graph-access behaviour and its three backends — the map value (default), the
-  ETS handle (`graffeo_ets`), and the DETS on-disk handle (`graffeo_dets`);
+- the graph-access behaviour and its four backends — the map value (default), the
+  ETS handle (`graffeo_ets`), the DETS on-disk handle (`graffeo_dets`), and the
+  Mnesia transactional/replicated handle (`graffeo_mnesia`);
 - vertices and edges with labels and edge metadata; in/out neighbours;
 - handle-tier mutation in one namespace — `add_vertex/2,3`, `add_edge/3,4`,
   `del_vertex/2`, `del_vertices/2`, `del_edge/3`, `del_edges/2`, plus `wrap/1`,
@@ -197,12 +234,12 @@ shortest length, valid path, correct endpoints, and reachability agreement, but
 may pick a different equally-short path than `digraph` when several exist — see
 [`docs/design/`](docs/design/) for why.)
 
-**0.2.0** added the `graffeo_dets` on-disk backend (build-once / reopen, configurable
-`data_dir`), an edge-induced subgraph (`filter_edges/2`), vertex contraction
-(`contract/2,3`), and `graffeo:copy/2`. On the roadmap: minimum spanning trees,
-negative-weight shortest paths (Bellman-Ford), a `graffeo_mnesia` backend, and
-multi-edge support — graffeo currently models *simple* directed graphs (at most one
-edge per ordered pair).
+**0.2.0** added the `graffeo_dets` on-disk backend and the `graffeo_mnesia`
+transactional/replicated backend (with `transaction/1` and a configurable `data_dir`),
+an edge-induced subgraph (`filter_edges/2`), vertex contraction (`contract/2,3`), and
+`graffeo:copy/2`. On the roadmap: minimum spanning trees, negative-weight shortest
+paths (Bellman-Ford), and multi-edge support — graffeo currently models *simple*
+directed graphs (at most one edge per ordered pair).
 Expect the public API to keep moving as these land. The design thinking lives in
 [`docs/design/`](docs/design/).
 
