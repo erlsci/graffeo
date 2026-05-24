@@ -47,7 +47,9 @@ users touch.
 %% Constructive algorithms
 -export([
     subgraph/2, subgraph/3,
-    condensation/1
+    condensation/1,
+    filter_edges/2,
+    contract/2, contract/3
 ]).
 
 %% Path/cycle queries (ported from digraph)
@@ -421,6 +423,47 @@ handle the caller must `graffeo_digraph:delete/1`.
 -spec condensation(graph()) -> graph().
 condensation(#graffeo{backend = B, ref = R} = G) ->
     graffeo_conn:condensation(B, R, G, B:vertices(R)).
+
+-doc """
+Edge-induced subgraph by predicate.
+
+Keeps edges where `Pred(From, To, Meta)` returns `true`, preserving
+metadata. Only vertices incident to a kept edge appear in the result.
+
+**Tier-2 lifecycle:** over a handle graph, the result is a new
+handle the caller must `graffeo_digraph:delete/1`.
+""".
+-spec filter_edges(graph(), fun((vertex(), vertex(), edge_meta()) -> boolean())) ->
+    graph().
+filter_edges(#graffeo{backend = B, ref = R} = G, Pred) ->
+    graffeo_conn:filter_edges(G, B, R, Pred).
+
+-doc """
+Quotient graph by class-function (default metadata).
+
+Result vertices are the distinct `ClassFun(V)` values. Edges between
+different classes are induced; intra-class edges are dropped.
+
+**Tier-2 lifecycle:** over a handle graph, the result is a new
+handle the caller must `graffeo_digraph:delete/1`.
+""".
+-spec contract(graph(), fun((vertex()) -> term())) -> graph().
+contract(#graffeo{backend = B, ref = R} = G, ClassFun) ->
+    graffeo_conn:contract(G, B, R, ClassFun).
+
+-doc """
+Quotient graph with a metadata merge function.
+
+When multiple original edges collapse onto the same class-pair,
+their metadata is folded with `MergeFun(AccMeta, NextMeta)`.
+""".
+-spec contract(
+    graph(),
+    fun((vertex()) -> term()),
+    fun((edge_meta(), edge_meta()) -> edge_meta())
+) -> graph().
+contract(#graffeo{backend = B, ref = R} = G, ClassFun, MergeFun) ->
+    graffeo_conn:contract(G, B, R, ClassFun, MergeFun).
 
 %%% === Path/cycle queries ===
 

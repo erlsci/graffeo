@@ -24,7 +24,9 @@ The DFS/forest engine is ported from the stdlib but runs over
     is_arborescence/3,
     arborescence_root/3,
     subgraph/4, subgraph/5,
-    condensation/4
+    condensation/4,
+    filter_edges/4,
+    contract/4, contract/5
 ]).
 
 %%% === Public API ===
@@ -221,6 +223,137 @@ condensation(B, R, G, Vs) ->
         Result0,
         SCPairs
     ).
+
+-doc """
+Edge-induced subgraph by predicate.
+
+Keeps edges where `Pred(From, To, Meta)` returns `true`, preserving
+metadata. Only vertices incident to a kept edge appear in the result.
+""".
+-spec filter_edges(
+    graffeo:graph(),
+    module(),
+    term(),
+    fun((graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()) -> boolean())
+) -> graffeo:graph().
+filter_edges(G, B, R, Pred) ->
+    Vs = B:vertices(R),
+    lists:foldl(
+        fun(From, GAcc) ->
+            Ns = B:out_neighbours(R, From),
+            lists:foldl(
+                fun(To, GAcc2) ->
+                    case B:edge_meta(R, From, To) of
+                        {ok, Meta} ->
+                            case Pred(From, To, Meta) of
+                                true ->
+                                    GAcc3 = ensure_build_vertex(B, GAcc2, From),
+                                    GAcc4 = ensure_build_vertex(B, GAcc3, To),
+                                    B:build_add_edge(GAcc4, From, To, Meta);
+                                false ->
+                                    GAcc2
+                            end;
+                        error ->
+                            GAcc2
+                    end
+                end,
+                GAcc,
+                Ns
+            )
+        end,
+        B:empty_like(G),
+        Vs
+    ).
+
+-doc """
+Quotient graph by class-function (default metadata on contracted edges).
+
+Result vertices are the distinct `ClassFun(V)` values. For each edge
+`(U, V)` where `ClassFun(U) =/= ClassFun(V)`, an edge is added between
+the classes. Intra-class edges are dropped. Contracted edges carry
+default metadata.
+""".
+-spec contract(
+    graffeo:graph(),
+    module(),
+    term(),
+    fun((graffeo:vertex()) -> term())
+) -> graffeo:graph().
+contract(G, B, R, ClassFun) ->
+    contract(G, B, R, ClassFun, fun(_Old, New) -> New end).
+
+-doc """
+Quotient graph with a metadata merge function.
+
+When multiple original edges collapse onto the same `(ClassA, ClassB)`,
+their metadata is folded with `MergeFun(AccMeta, NextMeta)`.
+""".
+-spec contract(
+    graffeo:graph(),
+    module(),
+    term(),
+    fun((graffeo:vertex()) -> term()),
+    fun((graffeo:edge_meta(), graffeo:edge_meta()) -> graffeo:edge_meta())
+) -> graffeo:graph().
+contract(G, B, R, ClassFun, MergeFun) ->
+    Vs = B:vertices(R),
+    Classes = lists:usort([ClassFun(V) || V <- Vs]),
+    G0 = lists:foldl(
+        fun(C, Acc) -> B:build_add_vertex(Acc, C) end,
+        B:empty_like(G),
+        Classes
+    ),
+    lists:foldl(
+        fun(From, GAcc) ->
+            ClassFrom = ClassFun(From),
+            Ns = B:out_neighbours(R, From),
+            lists:foldl(
+                fun(To, GAcc2) ->
+                    ClassTo = ClassFun(To),
+                    case ClassFrom =:= ClassTo of
+                        true ->
+                            GAcc2;
+                        false ->
+                            Meta =
+                                case B:edge_meta(R, From, To) of
+                                    {ok, M} -> M;
+                                    error -> #{}
+                                end,
+                            merge_contracted_edge(B, GAcc2, ClassFrom, ClassTo, Meta, MergeFun)
+                    end
+                end,
+                GAcc,
+                Ns
+            )
+        end,
+        G0,
+        Vs
+    ).
+
+-spec merge_contracted_edge(
+    module(),
+    graffeo:graph(),
+    term(),
+    term(),
+    graffeo:edge_meta(),
+    fun((graffeo:edge_meta(), graffeo:edge_meta()) -> graffeo:edge_meta())
+) -> graffeo:graph().
+merge_contracted_edge(B, G, ClassFrom, ClassTo, Meta, MergeFun) ->
+    case B:edge_meta(graffeo:extract_ref(B, G), ClassFrom, ClassTo) of
+        {ok, Existing} ->
+            Merged = MergeFun(Existing, Meta),
+            B:build_add_edge(G, ClassFrom, ClassTo, Merged);
+        error ->
+            B:build_add_edge(G, ClassFrom, ClassTo, Meta)
+    end.
+
+-spec ensure_build_vertex(module(), graffeo:graph(), graffeo:vertex()) -> graffeo:graph().
+ensure_build_vertex(B, G, V) ->
+    Ref = graffeo:extract_ref(B, G),
+    case lists:member(V, B:vertices(Ref)) of
+        true -> G;
+        false -> B:build_add_vertex(G, V)
+    end.
 
 -spec subgraph_build(graffeo:graph(), module(), term(), [graffeo:vertex()], boolean()) ->
     graffeo:graph().

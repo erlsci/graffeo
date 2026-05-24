@@ -17,7 +17,9 @@ cover in/out/total degree, normalised degree centrality, and top-k.
 ]).
 
 -type direction() :: out | in | both.
--type filter() :: fun((graffeo:vertex(), graffeo:vertex()) -> boolean()).
+-type filter() ::
+    fun((graffeo:vertex(), graffeo:vertex()) -> boolean())
+    | fun((graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()) -> boolean()).
 -type bfs_result() :: [{graffeo:vertex(), non_neg_integer()}].
 
 -export_type([direction/0, bfs_result/0]).
@@ -28,13 +30,16 @@ optional filter. Returns `[{Vertex, Distance}]`.
 
 Options:
 - `direction`: `out` (default), `in`, or `both`.
-- `filter`: `fun(From, To) -> boolean()` — only traverse edges
-  where the filter returns `true`.
+- `filter`: `fun(From, To) -> boolean()` or
+  `fun(From, To, Meta) -> boolean()` — only traverse edges where
+  the filter returns `true`. The arity-3 form receives the edge
+  metadata from `edge_meta/3`.
 """.
 -spec bfs(module(), term(), graffeo:vertex(), map()) -> bfs_result().
 bfs(Backend, Ref, Source, Opts) ->
     Dir = maps:get(direction, Opts, out),
-    Filter = maps:get(filter, Opts, fun(_From, _To) -> true end),
+    RawFilter = maps:get(filter, Opts, fun(_From, _To) -> true end),
+    Filter = normalise_filter(RawFilter, Backend, Ref),
     bfs_loop(
         Backend, Ref, Dir, Filter, [{Source, 0}], sets:from_list([Source], [{version, 2}]), []
     ).
@@ -79,6 +84,23 @@ top_k_by_degree(Backend, Ref, Vertices, K) ->
     Scored = [{V, degree(Backend, Ref, V)} || V <- Vertices],
     Sorted = lists:sort(fun({_, D1}, {_, D2}) -> D1 > D2 end, Scored),
     lists:sublist(Sorted, K).
+
+%%% --- Filter normalisation ---
+
+-spec normalise_filter(filter(), module(), term()) ->
+    fun((graffeo:vertex(), graffeo:vertex()) -> boolean()).
+normalise_filter(F, Backend, Ref) ->
+    case erlang:fun_info(F, arity) of
+        {arity, 2} ->
+            F;
+        {arity, 3} ->
+            fun(From, To) ->
+                case Backend:edge_meta(Ref, From, To) of
+                    {ok, Meta} -> F(From, To, Meta);
+                    error -> false
+                end
+            end
+    end.
 
 %%% --- Internal BFS ---
 

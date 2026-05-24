@@ -159,74 +159,23 @@ related_extended(G, SourceSlug, ConceptSlug) ->
     ),
     lists:usort(Local ++ SiblingRelated).
 
-%% --- Internal: projection helpers ---
-%% All projections are EDGE-INDUCED: only vertices incident to an
-%% included edge appear. No pre-seeding of all abstract vertices.
-%% Only abstract (slug→slug) edges are considered.
+%% --- Internal: projection helpers via graffeo:filter_edges/2 ---
 
 -spec project_by_type(graffeo:graph(), atom()) -> graffeo:graph().
 project_by_type(G, Type) ->
-    AbsVs = erlc_ingest:abstract_vertices(G),
-    lists:foldl(
-        fun(From, GAcc) ->
-            OutNbrs = [N || N <- graffeo:out_neighbours(G, From), is_binary(N)],
-            lists:foldl(
-                fun(To, GAcc2) ->
-                    maybe_add_typed_edge(G, GAcc2, From, To, Type)
-                end,
-                GAcc,
-                OutNbrs
-            )
-        end,
-        graffeo:new(),
-        AbsVs
-    ).
-
--spec maybe_add_typed_edge(
-    graffeo:graph(), graffeo:graph(), binary(), binary(), atom()
-) ->
-    graffeo:graph().
-maybe_add_typed_edge(SrcGraph, DestGraph, From, To, Type) ->
-    case graffeo:edge_meta(SrcGraph, From, To) of
-        {ok, #{label := #{types := Types}}} ->
-            case lists:member(Type, Types) of
-                true -> ensure_edge(DestGraph, From, To);
-                false -> DestGraph
-            end;
-        _ ->
-            DestGraph
-    end.
-
--spec ensure_edge(graffeo:graph(), binary(), binary()) -> graffeo:graph().
-ensure_edge(G, From, To) ->
-    G1 = ensure_vertex(G, From),
-    G2 = ensure_vertex(G1, To),
-    case graffeo:edge_meta(G2, From, To) of
-        error -> graffeo:add_edge(G2, From, To);
-        _ -> G2
-    end.
-
--spec ensure_vertex(graffeo:graph(), binary()) -> graffeo:graph().
-ensure_vertex(G, V) ->
-    case lists:member(V, graffeo:vertices(G)) of
-        true -> G;
-        false -> graffeo:add_vertex(G, V)
-    end.
+    graffeo:filter_edges(G, fun(From, To, Meta) ->
+        is_binary(From) andalso is_binary(To) andalso
+            has_type(Meta, Type)
+    end).
 
 -spec project_abstract_relations(graffeo:graph()) -> graffeo:graph().
 project_abstract_relations(G) ->
-    AbsVs = erlc_ingest:abstract_vertices(G),
-    lists:foldl(
-        fun(From, GAcc) ->
-            OutNbrs = [N || N <- graffeo:out_neighbours(G, From), is_binary(N)],
-            lists:foldl(
-                fun(To, GAcc2) ->
-                    ensure_edge(GAcc2, From, To)
-                end,
-                GAcc,
-                OutNbrs
-            )
-        end,
-        graffeo:new(),
-        AbsVs
-    ).
+    graffeo:filter_edges(G, fun(From, To, _Meta) ->
+        is_binary(From) andalso is_binary(To)
+    end).
+
+-spec has_type(graffeo:edge_meta(), atom()) -> boolean().
+has_type(#{label := #{types := Types}}, Type) ->
+    lists:member(Type, Types);
+has_type(_, _) ->
+    false.

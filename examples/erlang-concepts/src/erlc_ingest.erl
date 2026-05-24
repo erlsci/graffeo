@@ -165,51 +165,62 @@ add_abstract_edges(Cards, G) ->
 
 -spec project_source_edges(graffeo:graph()) -> graffeo:graph().
 project_source_edges(G) ->
-    SrcVs = source_vertices(G),
+    SrcOnly = graffeo:filter_edges(G, fun(From, To, _Meta) ->
+        is_tuple(From) andalso is_tuple(To)
+    end),
+    Contracted = graffeo:contract(
+        SrcOnly,
+        fun({_Src, Slug}) -> Slug end,
+        fun merge_type_meta/2
+    ),
+    merge_contracted_into(G, Contracted).
+
+-spec merge_type_meta(graffeo:edge_meta(), graffeo:edge_meta()) -> graffeo:edge_meta().
+merge_type_meta(
+    #{label := #{types := T1, asserted_by := A1}},
+    #{label := #{types := T2, asserted_by := A2}}
+) ->
+    #{
+        label => #{
+            types => lists:usort(T1 ++ T2),
+            asserted_by => lists:usort(A1 ++ A2)
+        }
+    };
+merge_type_meta(_Acc, New) ->
+    New.
+
+-spec merge_contracted_into(graffeo:graph(), graffeo:graph()) -> graffeo:graph().
+merge_contracted_into(G, Contracted) ->
+    CVs = graffeo:vertices(Contracted),
     lists:foldl(
-        fun({Src, FromSlug} = From, GAcc) ->
-            OutNbrs = graffeo:out_neighbours(G, From),
-            SrcNbrs = [{S, T} || {S, T} <- OutNbrs, S =:= Src],
+        fun(From, GAcc) ->
+            OutNbrs = graffeo:out_neighbours(Contracted, From),
             lists:foldl(
-                fun({_, ToSlug}, GAcc2) ->
-                    case graffeo:edge_meta(G, From, {Src, ToSlug}) of
-                        {ok, #{label := #{types := Types, asserted_by := Asserters}}} ->
-                            project_one_edge(GAcc2, FromSlug, ToSlug, Types, Asserters);
-                        _ ->
+                fun(To, GAcc2) ->
+                    case graffeo:edge_meta(Contracted, From, To) of
+                        {ok, Meta} ->
+                            case graffeo:edge_meta(GAcc2, From, To) of
+                                {ok, ExMeta} ->
+                                    graffeo:add_edge(
+                                        GAcc2,
+                                        From,
+                                        To,
+                                        merge_type_meta(ExMeta, Meta)
+                                    );
+                                error ->
+                                    graffeo:add_edge(GAcc2, From, To, Meta)
+                            end;
+                        error ->
                             GAcc2
                     end
                 end,
                 GAcc,
-                SrcNbrs
+                OutNbrs
             )
         end,
         G,
-        SrcVs
+        CVs
     ).
-
--spec project_one_edge(
-    graffeo:graph(),
-    binary(),
-    binary(),
-    [atom()],
-    [binary()]
-) -> graffeo:graph().
-project_one_edge(G, FromSlug, ToSlug, Types, Asserters) ->
-    case graffeo:edge_meta(G, FromSlug, ToSlug) of
-        {ok, #{label := #{types := ExTypes, asserted_by := ExAsserters}}} ->
-            NewTypes = lists:usort(Types ++ ExTypes),
-            NewAsserters = lists:usort(Asserters ++ ExAsserters),
-            Meta = #{
-                label => #{
-                    types => NewTypes,
-                    asserted_by => NewAsserters
-                }
-            },
-            graffeo:add_edge(G, FromSlug, ToSlug, Meta);
-        error ->
-            Meta = #{label => #{types => Types, asserted_by => Asserters}},
-            graffeo:add_edge(G, FromSlug, ToSlug, Meta)
-    end.
 
 -spec add_cross_only_edges([erlc_parser:card()], graffeo:graph()) ->
     graffeo:graph().
