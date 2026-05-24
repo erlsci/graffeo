@@ -62,10 +62,8 @@ resolve_candidates_all_unwritable_test() ->
 
 build_candidates_with_priv_dir_test() ->
     Candidates = graffeo_config:build_candidates("/some/priv"),
-    ?assertEqual("/some/priv/data", hd(Candidates)),
-    ?assert(length(Candidates) =:= 3).
+    ?assertMatch(["/some/priv/data", _, _], Candidates).
 
 build_candidates_without_priv_dir_test() ->
     Candidates = graffeo_config:build_candidates({error, bad_name}),
-    ?assertEqual("graffeo_data", hd(Candidates)),
-    ?assert(length(Candidates) =:= 2).
+    ?assertMatch(["graffeo_data", _], Candidates).
