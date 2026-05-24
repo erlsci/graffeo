@@ -49,7 +49,8 @@ users touch.
     subgraph/2, subgraph/3,
     condensation/1,
     filter_edges/2,
-    contract/2, contract/3
+    contract/2, contract/3,
+    copy/2
 ]).
 
 %% Path/cycle queries (ported from digraph)
@@ -466,6 +467,50 @@ their metadata is folded with `MergeFun(AccMeta, NextMeta)`.
 ) -> graph().
 contract(#graffeo{backend = B, ref = R} = G, ClassFun, MergeFun) ->
     graffeo_conn:contract(G, B, R, ClassFun, MergeFun).
+
+-doc """
+Copy all vertices and edges from `Src` into `Dst`.
+
+Walks `Src` through the read-half and builds into `Dst` via the
+build-half. Returns `Dst` (which now contains the union). Labels
+and edge metadata are preserved.
+
+This is the persist primitive: build in memory, then
+`copy(MapGraph, graffeo_dets:open("my_graph"))`.
+""".
+-spec copy(graph(), graph()) -> graph().
+copy(#graffeo{backend = SB, ref = SR}, #graffeo{backend = DB} = Dst) ->
+    Vs = SB:vertices(SR),
+    Dst1 = lists:foldl(
+        fun(V, Acc) ->
+            case SB:vertex_label(SR, V) of
+                {ok, undefined} -> DB:build_add_vertex(Acc, V);
+                {ok, Label} -> DB:build_add_vertex(Acc, V, Label);
+                error -> Acc
+            end
+        end,
+        Dst,
+        Vs
+    ),
+    lists:foldl(
+        fun(V, Acc0) ->
+            Ns = SB:out_neighbours(SR, V),
+            lists:foldl(
+                fun(N, Acc1) ->
+                    Meta =
+                        case SB:edge_meta(SR, V, N) of
+                            {ok, M} -> M;
+                            error -> #{}
+                        end,
+                    DB:build_add_edge(Acc1, V, N, Meta)
+                end,
+                Acc0,
+                Ns
+            )
+        end,
+        Dst1,
+        Vs
+    ).
 
 %%% === Path/cycle queries ===
 

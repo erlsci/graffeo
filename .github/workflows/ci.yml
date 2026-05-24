@@ -62,6 +62,6 @@ jobs:
     - name: Fetch concept-cards corpus
       run: make -C examples/erlang-concepts fetch-cards
     - name: Example tests (oracle parity gate)
-      run: cd examples/erlang-concepts && rebar3 eunit
+      run: cd examples/erlang-concepts && rebar3 eunit --module=erlc_parser_tests,erlc_ingest_tests,erlc_queries_tests,erlc_oracle_tests
     - name: Example end-to-end smoke
       run: make -C examples/erlang-concepts example

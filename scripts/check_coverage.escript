@@ -12,12 +12,16 @@
     graffeo,
     graffeo_backend,
     graffeo_builder,
+    graffeo_config,
     graffeo_conn,
+    graffeo_dets,
     graffeo_ets,
     graffeo_map,
     graffeo_path,
     graffeo_traverse
 ]).
+
+-define(AMENDED, #{}).
 
 main(_Args) ->
     lists:foreach(
@@ -29,8 +33,8 @@ main(_Args) ->
         end,
         ?COVERDATA_FILES
     ),
-    {TotalCov, TotalUncov} = lists:foldl(
-        fun(Mod, {CovAcc, UncovAcc}) ->
+    {TotalCov, TotalUncov, Failed} = lists:foldl(
+        fun(Mod, {CovAcc, UncovAcc, FailAcc}) ->
             case cover:analyse(Mod, calls, line) of
                 {ok, Lines} ->
                     Cov = length([1 || {{_, _}, N} <- Lines, N > 0]),
@@ -40,13 +44,17 @@ main(_Args) ->
                         T -> Cov * 100 div T
                     end,
                     io:format("  ~-25s ~3w%  (~w/~w)~n", [Mod, Pct, Cov, Cov + Uncov]),
-                    {CovAcc + Cov, UncovAcc + Uncov};
+                    NewFail = case check_module(Mod, Pct) of
+                        pass -> FailAcc;
+                        {fail, Reason} -> [{Mod, Reason} | FailAcc]
+                    end,
+                    {CovAcc + Cov, UncovAcc + Uncov, NewFail};
                 {error, _} ->
                     io:format("  ~-25s  (no data)~n", [Mod]),
-                    {CovAcc, UncovAcc}
+                    {CovAcc, UncovAcc, [{Mod, "no data"} | FailAcc]}
             end
         end,
-        {0, 0},
+        {0, 0, []},
         ?MODULES
     ),
     Total = TotalCov + TotalUncov,
@@ -55,12 +63,38 @@ main(_Args) ->
         _ -> TotalCov * 100 div Total
     end,
     io:format("~n  Total: ~w% (~w/~w executable lines)~n", [Pct, TotalCov, Total]),
-    io:format("  Threshold: ~w%~n", [?THRESHOLD]),
-    case Pct >= ?THRESHOLD of
-        true ->
+    io:format("  Threshold: ~w% (per-module)~n", [?THRESHOLD]),
+    case {Failed, Pct >= ?THRESHOLD} of
+        {[], true} ->
             io:format("  PASS~n"),
             halt(0);
-        false ->
-            io:format("  FAIL: coverage ~w% < ~w%~n", [Pct, ?THRESHOLD]),
+        {[], false} ->
+            io:format("  FAIL: aggregate ~w% < ~w%~n", [Pct, ?THRESHOLD]),
+            halt(1);
+        {_, _} ->
+            lists:foreach(
+                fun({Mod, Reason}) ->
+                    io:format("  FAIL: ~s — ~s~n", [Mod, Reason])
+                end,
+                lists:reverse(Failed)
+            ),
             halt(1)
+    end.
+
+check_module(Mod, Pct) ->
+    case maps:find(Mod, ?AMENDED) of
+        {ok, {Floor, _Lines}} ->
+            case Pct >= Floor of
+                true -> pass;
+                false ->
+                    {fail, lists:flatten(
+                        io_lib:format("~w% < amended floor ~w%", [Pct, Floor]))}
+            end;
+        error ->
+            case Pct >= ?THRESHOLD of
+                true -> pass;
+                false ->
+                    {fail, lists:flatten(
+                        io_lib:format("~w% < ~w%", [Pct, ?THRESHOLD]))}
+            end
     end.

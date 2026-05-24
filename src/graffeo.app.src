@@ -6,7 +6,7 @@
         kernel,
         stdlib
     ]},
-    {env, []},
+    {env, [{data_dir, default}]},
     {modules, []},
     {licenses, ["Apache-2.0"]},
     {links, [{"Github", "https://github.com/erlsci/graffeo"}]},
