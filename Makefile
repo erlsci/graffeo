@@ -1,4 +1,4 @@
-.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish fetch-cards example
+.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish fetch-cards example example-check
 
 REBAR := rebar3
 APP_NAME := graffeo
@@ -95,6 +95,10 @@ example: fetch-cards
 	@cd $(EXAMPLE_DIR) && $(REBAR) compile
 	@cd $(EXAMPLE_DIR) && erl -noshell -pa _build/default/lib/*/ebin -eval 'erlc:main([]), halt().'
 
+example-check: fetch-cards
+	@cd $(EXAMPLE_DIR) && $(REBAR) compile
+	@cd $(EXAMPLE_DIR) && $(REBAR) eunit --module=erlc_oracle_tests
+
 # Help
 help:
 	@echo "$(APP_NAME) v$(APP_VERSION) - Available targets:"
@@ -113,4 +117,5 @@ help:
 	@echo "  make publish        - Publish to Hex"
 	@echo "  make fetch-cards     - Shallow-clone the concept-cards corpus"
 	@echo "  make example         - Build and run the erlang-concepts example"
+	@echo "  make example-check   - Run oracle-parity gate on the example"
 	@echo "  make help           - Show this help message"

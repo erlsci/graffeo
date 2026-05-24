@@ -46,3 +46,22 @@ jobs:
       run: |
         rebar3 cover
         escript scripts/check_coverage.escript
+
+  example:
+    name: erlang-concepts example (OTP ${{ matrix.otp_version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        otp_version: [27, 28]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ matrix.otp_version }}
+        rebar3-version: '3.25'
+    - name: Fetch concept-cards corpus
+      run: make fetch-cards
+    - name: Example tests (oracle parity gate)
+      run: cd examples/erlang-concepts && rebar3 eunit
+    - name: Example end-to-end smoke
+      run: make example

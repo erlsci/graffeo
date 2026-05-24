@@ -1,7 +1,7 @@
 -module(erlc).
 -moduledoc "Runner for the erlang-concepts worked example.".
 
--export([main/1]).
+-export([main/1, cards_dir/0]).
 
 -doc "Run the erlang-concepts query catalog and print results.".
 -spec main([string()]) -> ok.
@@ -22,6 +22,7 @@ main(_Args) ->
     print_tunable_relatedness(G),
     ok.
 
+-doc "Path to the concept-cards corpus directory.".
 -spec cards_dir() -> nonempty_string().
 cards_dir() ->
     "../../workbench/ai-engineering/knowledge/erlang/concept-cards".
