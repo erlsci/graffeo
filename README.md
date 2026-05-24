@@ -17,32 +17,43 @@ up hand-rolling on real graph projects. The benchmark it measures itself
 against is Rust's [petgraph](https://docs.rs/petgraph), which set the recent bar
 for what a graph library should give you out of the box.
 
-## The idea
+## About
 
-Two design choices shape graffeo.
+graffeo is, in large part, a wrapper around Erlang's two standard-library graph
+modules, `digraph` and `digraph_utils` — bringing them together behind a single
+module so that graph-theoretic programming in Erlang has one obvious front door.
 
-**One algorithm layer, many backends.** The Erlang stdlib's algorithms
-were written functional-first: they touch storage only through a thin set of
-read accessors and never mutate the graph they traverse. graffeo makes that
-implicit seam explicit as an Erlang *behaviour*, so each algorithm is written
-once and runs over any backend that satisfies the contract. This is the same
-property that the Rust library `petgraph` gets from its graph traits — one algorithm body, many graph
-types — `graffeo` does this the Erlang way.
+It **embraces `digraph` and `digraph_utils` wholesale.** graffeo does not redesign
+or reinterpret them: every ported function keeps the stdlib's exact name, arity,
+argument order, return shape, and semantics, so a `digraph` user is immediately at
+home. graffeo only *adds* — it never changes what the standard library already got
+right.
 
-**Two tiers, faithful to Erlang.** The standard library already splits the
-world into values (`lists`, `maps`, `sets`) and handles (`ets`, `dets`,
-`digraph`), and graffeo honours that rather than hiding it:
+Structurally, it adds a thin seam and a choice of storage. A graph-access
+*behaviour* lets each algorithm be written once and run over any conforming
+**backend**; alongside the familiar `digraph`/ETS handle, graffeo ships an
+immutable, map-backed *value* backend (copyable, pattern-matchable,
+message-passable), with a `dets` on-disk backend on the way. The design rationale
+lives in [`docs/architecture.md`](docs/architecture.md).
 
-- a **functional tier** — an immutable, map-backed graph that is a true value:
-  copyable, pattern-matchable, and message-passable between processes (the
-  default, and the petgraph-like face); and
-- a **handle tier** — a mutable backend over `digraph`/ETS (and, later, `dets`
-  on disk) for scale and for drop-in transparency. A `digraph` user should be
-  completely at home here, because nothing magic happens underneath.
+And it adds the graph-theoretic functions you end up hand-rolling on real projects —
+the ones neither `digraph` nor `digraph_utils` provide:
 
-The algorithms are shared across both tiers, because reading a graph is the
-same whether it is a value or a handle. The difference shows up only where it
-genuinely matters — in how you build and change a graph.
+| Function | What it adds |
+|----------|--------------|
+| `dijkstra/2,3` | Weighted shortest paths (Dijkstra), with a pluggable cost function |
+| `astar/3,4` | Weighted shortest paths (A\*), with a pluggable cost and an admissible heuristic |
+| `bfs/2,3` | Breadth-first traversal with direction (`out`/`in`/`both`), an edge filter, and distances |
+| `degree/2` | Combined in+out degree (the stdlib exposes only `in_degree`/`out_degree`) |
+| `degree_centrality/2` | Normalised degree centrality |
+| `top_k_by_degree/2` | The *k* most-connected vertices |
+| `source_vertices/1` | Vertices with no incoming edges |
+| `sink_vertices/1` | Vertices with no outgoing edges |
+
+*More on the way* — an edge-induced subgraph (`filter_edges/2`) and vertex
+contraction (`contract/2,3`) are landing next, with minimum spanning trees,
+negative-weight shortest paths (Bellman-Ford), and the `dets` backend on the
+roadmap.
 
 ## Usage
 
