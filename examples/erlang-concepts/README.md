@@ -16,10 +16,11 @@ programmer already owns and walks, step by step, toward the graph theory underne
 ## What you'll need
 
 - Erlang/OTP 27+ and `rebar3`.
-- The corpus, fetched once (a shallow clone pinned to a tag; ~13 MB, not vendored):
+- The corpus, fetched once (a shallow clone pinned to a tag; ~13 MB, not vendored).
+  Run these **from this directory** (`examples/erlang-concepts`):
 
 ```shell
-make fetch-cards      # clones billosys/ai-engineering@0.1.0 into ./workbench/ai-engineering
+make fetch-cards      # clones billosys/ai-engineering@0.1.0 into ../../workbench/ai-engineering
 make example          # compiles the example and runs the full query catalog
 ```
 
@@ -36,8 +37,8 @@ examples/erlang-concepts/
     erlc_queries.erl   % the query catalog
     erlc.erl           % the runner behind `make example`
   oracle/
-    oracle.py          % an independent Python reference for every figure here
-    expected.json      % frozen expected results (the numbers in this document)
+    src/main.rs        % an independent Rust (petgraph) reference for every figure here
+    expected.json      % frozen expected results; regenerate with `make oracle-gen`
   test/                % eunit for the parser, ingestion, and queries
 ```
 

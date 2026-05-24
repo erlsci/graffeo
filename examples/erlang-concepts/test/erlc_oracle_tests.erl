@@ -4,8 +4,8 @@ Oracle-parity gate for the erlang-concepts example.
 
 Asserts that every anchored fact computed by the example code matches
 the committed `oracle/expected.json`. The JSON is regenerated only
-when the pinned corpus tag moves, using `oracle/oracle.py`; CI never
-runs Python. This module reads the committed JSON as a fixed reference.
+when the pinned corpus tag moves, using `make oracle-gen` (the Rust
+oracle binary). This module reads the committed JSON as a fixed reference.
 """.
 
 -include_lib("eunit/include/eunit.hrl").

@@ -1,4 +1,4 @@
-.PHONY: all compile fetch-cards example example-check help
+.PHONY: all compile fetch-cards example example-check oracle-build oracle-gen help
 
 REBAR := rebar3
 CARDS_DIR := ../../workbench/ai-engineering
@@ -23,10 +23,18 @@ example: fetch-cards compile
 example-check: fetch-cards compile
 	@$(REBAR) eunit --module=erlc_oracle_tests
 
+oracle-build:
+	@cd oracle && cargo build --release
+
+oracle-gen: oracle-build fetch-cards
+	@oracle/target/release/oracle $(CARDS_DIR)/knowledge/erlang/concept-cards > oracle/expected.json
+
 help:
 	@echo "erlang-concepts example — Available targets:"
 	@echo "  make compile        - Compile the example project"
 	@echo "  make fetch-cards    - Shallow-clone the concept-cards corpus"
 	@echo "  make example        - Build and run the example query catalog"
 	@echo "  make example-check  - Run the oracle-parity gate"
+	@echo "  make oracle-build   - Build the Rust oracle binary"
+	@echo "  make oracle-gen     - Regenerate oracle/expected.json"
 	@echo "  make help           - Show this help message"

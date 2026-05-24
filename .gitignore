@@ -22,4 +22,4 @@ rebar3.crashdump
 /priv/ai
 /.claude
 /doc
-/examples/erlang-concepts/oracle/__pycache__/
+/examples/erlang-concepts/oracle/target/
