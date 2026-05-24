@@ -186,6 +186,15 @@ nodes => [node()], majority => boolean()}`; multi-node replication rides the `no
 option, but its partition behaviour is Mnesia's own — use it knowingly. Mnesia's data
 directory comes from the same `data_dir` config as `graffeo_dets`.
 
+## Example
+
+[`examples/erlang-concepts`](https://github.com/erlsci/graffeo/tree/main/examples/erlang-concepts)
+is a guided tour, not a toy: it ingests the Erlang concept-card knowledge base — ~1,400
+concepts distilled from twelve Erlang/OTP books — and walks from degree centrality
+through strongly-connected-component condensation to a derived *learning order*, finding
+real defects in the source data along the way. The whole tour runs identically over all
+four backends, checked in CI against an independent oracle.
+
 ## Build
 
 ```shell
