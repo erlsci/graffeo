@@ -60,8 +60,8 @@ jobs:
         otp-version: ${{ matrix.otp_version }}
         rebar3-version: '3.25'
     - name: Fetch concept-cards corpus
-      run: make fetch-cards
+      run: make -C examples/erlang-concepts fetch-cards
     - name: Example tests (oracle parity gate)
       run: cd examples/erlang-concepts && rebar3 eunit
     - name: Example end-to-end smoke
-      run: make example
+      run: make -C examples/erlang-concepts example

@@ -1,4 +1,4 @@
-.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish fetch-cards example example-check
+.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish fetch-cards example
 
 REBAR := rebar3
 APP_NAME := graffeo
@@ -77,27 +77,15 @@ publish: docs
 	@echo "Publishing $(APP_NAME) v$(APP_VERSION)..."
 	@$(REBAR) hex publish package
 
-## === Erlang-concepts example ===
+## === Erlang-concepts example (delegates to examples/erlang-concepts/Makefile) ===
 
-CARDS_DIR := workbench/ai-engineering
-CARDS_REPO := https://github.com/billosys/ai-engineering.git
-CARDS_TAG := 0.1.0
 EXAMPLE_DIR := examples/erlang-concepts
 
 fetch-cards:
-	@if [ -d "$(CARDS_DIR)" ]; then \
-		echo "$(CARDS_DIR) already present; skipping clone."; \
-	else \
-		git clone --depth 1 --branch $(CARDS_TAG) $(CARDS_REPO) $(CARDS_DIR); \
-	fi
+	@$(MAKE) -C $(EXAMPLE_DIR) fetch-cards
 
-example: fetch-cards
-	@cd $(EXAMPLE_DIR) && $(REBAR) compile
-	@cd $(EXAMPLE_DIR) && erl -noshell -pa _build/default/lib/*/ebin -eval 'erlc:main([]), halt().'
-
-example-check: fetch-cards
-	@cd $(EXAMPLE_DIR) && $(REBAR) compile
-	@cd $(EXAMPLE_DIR) && $(REBAR) eunit --module=erlc_oracle_tests
+example:
+	@$(MAKE) -C $(EXAMPLE_DIR) example
 
 # Help
 help:
@@ -117,5 +105,4 @@ help:
 	@echo "  make publish        - Publish to Hex"
 	@echo "  make fetch-cards     - Shallow-clone the concept-cards corpus"
 	@echo "  make example         - Build and run the erlang-concepts example"
-	@echo "  make example-check   - Run oracle-parity gate on the example"
 	@echo "  make help           - Show this help message"
