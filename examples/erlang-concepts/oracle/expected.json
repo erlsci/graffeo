@@ -1,0 +1,177 @@
+{
+  "abstract_edge_assertions_by_type": {
+    "contrasts_with": 591,
+    "extends": 299,
+    "prerequisites": 2158,
+    "related": 3917
+  },
+  "all_relations_component_sizes_top": [
+    1212,
+    121,
+    17,
+    9,
+    9,
+    8,
+    6,
+    6
+  ],
+  "all_relations_giant_size": 1212,
+  "all_relations_n_components": 10,
+  "five_book_slugs": [
+    "child-specification",
+    "gen-server",
+    "otp-application",
+    "pattern-matching",
+    "supervision-tree"
+  ],
+  "ghost_concepts": [
+    "erlang-ports",
+    "os-monotonic-time",
+    "os-system-time"
+  ],
+  "n_abstract_ordered_pairs": 6179,
+  "n_abstract_vertices": 1394,
+  "n_multi_asserted_triples": 279,
+  "n_multi_book_slugs": 181,
+  "n_multi_typed_pairs": 731,
+  "n_prereq_cycles": 12,
+  "n_source_vertices": 1664,
+  "prereq_cyclic_strong_components": [
+    [
+      "application-upgrade-file",
+      "release-handling-instructions"
+    ],
+    [
+      "automatic-shutdown",
+      "significant-child"
+    ],
+    [
+      "behaviour",
+      "callback-module",
+      "child-specification",
+      "gen-server",
+      "generic-server",
+      "supervision-tree",
+      "supervisor",
+      "supervisor-behaviour",
+      "supervisor-implementation",
+      "worker-process"
+    ],
+    [
+      "ct-test-case",
+      "ct-test-suite"
+    ],
+    [
+      "distributed-erlang",
+      "erlang-node"
+    ],
+    [
+      "erlang-function",
+      "erlang-module"
+    ],
+    [
+      "event-handler",
+      "gen-event-behavior"
+    ],
+    [
+      "gen-tcp",
+      "tcp-socket"
+    ],
+    [
+      "module-versioning",
+      "software-upgrade",
+      "two-module-limit"
+    ],
+    [
+      "pattern-matching",
+      "single-assignment",
+      "variables"
+    ],
+    [
+      "port-program",
+      "port-protocol"
+    ],
+    [
+      "proc-lib",
+      "special-process"
+    ]
+  ],
+  "prereq_edges": 2158,
+  "prereq_nodes": 1226,
+  "related_component_sizes_top": [
+    1151,
+    121,
+    17,
+    15,
+    9,
+    9,
+    9,
+    8
+  ],
+  "related_giant_size": 1151,
+  "related_n_components": 19,
+  "sources": {
+    "design-scale-erlang-otp": 224,
+    "erlang-in-anger": 94,
+    "erlang-otp-action": 250,
+    "inaka-guidelines": 64,
+    "learn-you-some-erlang": 244,
+    "otp-design-principles": 105,
+    "otp-efficiency-guide": 67,
+    "otp-erts": 51,
+    "otp-reference-manual": 222,
+    "otp-system-principles": 42,
+    "programming-erlang": 243,
+    "programming-rules": 58
+  },
+  "top_k_by_total_degree": [
+    [
+      "gen-server",
+      118
+    ],
+    [
+      "pattern-matching",
+      92
+    ],
+    [
+      "otp-application",
+      86
+    ],
+    [
+      "message-passing",
+      84
+    ],
+    [
+      "process",
+      71
+    ],
+    [
+      "erlang-process",
+      70
+    ],
+    [
+      "supervisor",
+      68
+    ],
+    [
+      "distributed-erlang",
+      57
+    ],
+    [
+      "child-specification",
+      47
+    ],
+    [
+      "erlang-module",
+      46
+    ],
+    [
+      "supervision-tree",
+      45
+    ],
+    [
+      "mnesia",
+      39
+    ]
+  ]
+}

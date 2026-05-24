@@ -1,4 +1,4 @@
-.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish
+.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish fetch-cards example
 
 REBAR := rebar3
 APP_NAME := graffeo
@@ -77,6 +77,24 @@ publish: docs
 	@echo "Publishing $(APP_NAME) v$(APP_VERSION)..."
 	@$(REBAR) hex publish package
 
+## === Erlang-concepts example ===
+
+CARDS_DIR := workbench/ai-engineering
+CARDS_REPO := https://github.com/billosys/ai-engineering.git
+CARDS_TAG := 0.1.0
+EXAMPLE_DIR := examples/erlang-concepts
+
+fetch-cards:
+	@if [ -d "$(CARDS_DIR)" ]; then \
+		echo "$(CARDS_DIR) already present; skipping clone."; \
+	else \
+		git clone --depth 1 --branch $(CARDS_TAG) $(CARDS_REPO) $(CARDS_DIR); \
+	fi
+
+example: fetch-cards
+	@cd $(EXAMPLE_DIR) && $(REBAR) compile
+	@cd $(EXAMPLE_DIR) && erl -noshell -pa _build/default/lib/*/ebin -eval 'erlc:main([]), halt().'
+
 # Help
 help:
 	@echo "$(APP_NAME) v$(APP_VERSION) - Available targets:"
@@ -93,4 +111,6 @@ help:
 	@echo "  make docs           - Generate documentation (ex_doc)"
 	@echo "  make coverage-report - Generate coverage report"
 	@echo "  make publish        - Publish to Hex"
+	@echo "  make fetch-cards     - Shallow-clone the concept-cards corpus"
+	@echo "  make example         - Build and run the erlang-concepts example"
 	@echo "  make help           - Show this help message"

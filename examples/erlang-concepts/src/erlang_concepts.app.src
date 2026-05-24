@@ -1,0 +1,8 @@
+{application, erlang_concepts, [
+    {description, "Erlang concept-card knowledge graph — graffeo worked example"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib, graffeo]},
+    {env, []},
+    {modules, []}
+]}.
