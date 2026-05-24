@@ -177,7 +177,7 @@ Apache License 2.0. See [LICENSE](LICENSE).
 [project]: https://github.com/erlsci/graffeo
 [logo]: priv/images/logo.png
 [logo-large]: priv/images/logo-large.png
-[coverage-badge]: https://img.shields.io/badge/coverage-95%25-brightgreen
+[coverage-badge]: https://img.shields.io/badge/coverage-96%25-brightgreen
 [gh-actions-badge]: https://github.com/erlsci/graffeo/workflows/ci/badge.svg
 [gh-actions]: https://github.com/erlsci/graffeo/actions?query=workflow%3Aci
 [tag-badge]: https://img.shields.io/github/tag/erlsci/graffeo.svg
