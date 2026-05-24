@@ -1,8 +1,9 @@
-.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage
+.PHONY: all compile clean test dialyzer xref format format-check lint docs console check coverage publish
 
 REBAR := rebar3
 APP_NAME := graffeo
 APP_VERSION := $(shell grep vsn src/$(APP_NAME).app.src | cut -d'"' -f2)
+DOC_DIR := doc
 
 all: compile
 
@@ -11,7 +12,7 @@ compile:
 
 clean:
 	@$(REBAR) clean
-	@rm -rf _build logs erl_crash.dump
+	@rm -rf _build logs erl_crash.dump doc
 
 test:
 	@mkdir -p logs
@@ -66,7 +67,13 @@ distclean: clean
 	@rm -rf _build
 	@echo "Deep clean complete"
 
-publish:
+$(DOC_DIR):
+	@$(REBAR) ex_doc
+	@echo "Documentation generated in $(DOC_DIR)/"
+
+docs: clean $(DOC_DIR)
+
+publish: docs
 	@echo "Publishing $(APP_NAME) v$(APP_VERSION)..."
 	@$(REBAR) hex publish package
 
@@ -83,6 +90,7 @@ help:
 	@echo "  make check          - Run all checks (xref, dialyzer, lint, tests)"
 	@echo "  make analyze        - Run static analysis (xref, dialyzer, lint)"
 	@echo "  make coverage       - Run tests and assert >=95% executable-line coverage"
+	@echo "  make docs           - Generate documentation (ex_doc)"
 	@echo "  make coverage-report - Generate coverage report"
 	@echo "  make publish        - Publish to Hex"
 	@echo "  make help           - Show this help message"

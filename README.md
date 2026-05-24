@@ -159,7 +159,7 @@ rebar3 compile
 
 ## License
 
-Apache License 2.0. See [LICENSE.md](LICENSE.md).
+Apache License 2.0. See [LICENSE](LICENSE).
 
 [//]: ---Named-Links---
 
