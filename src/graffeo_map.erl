@@ -39,6 +39,7 @@ untouched. Labels on vertices, weight/metadata on edges.
     in = #{} :: #{graffeo:vertex() => #{graffeo:vertex() => graffeo:edge_meta()}}
 }).
 
+-doc "Opaque reference to the map-backed graph internals.".
 -opaque ref() :: #gmap{}.
 -export_type([ref/0]).
 

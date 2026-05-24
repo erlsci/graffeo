@@ -88,8 +88,10 @@ users touch.
     edge_meta/0
 ]).
 
+-doc "An opaque graph handle (map-backed or digraph-backed).".
 -opaque graph() :: #graffeo{}.
 
+-doc "A graph vertex (any Erlang term).".
 -type vertex() :: term().
 -doc "Vertex label; defaults to `undefined`.".
 -type label() :: term().

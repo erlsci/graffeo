@@ -16,6 +16,7 @@ Membership: `{SourceSlug, Slug} -> Slug` (`instance_of`).
 
 -export_type([result/0]).
 
+-doc "Build result: the graph plus source and abstract vertex counts.".
 -type result() :: #{
     graph := graffeo:graph(),
     source_count := non_neg_integer(),

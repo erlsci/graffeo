@@ -15,7 +15,9 @@ Path and shortest-path algorithms over the read-half behaviour.
 ]).
 
 -type cost_fun() :: fun((graffeo:edge_meta()) -> number()).
+-doc "Map from vertex to shortest-path distance.".
 -type dist_map() :: #{graffeo:vertex() => number()}.
+-doc "Map from vertex to its predecessor on the shortest path.".
 -type prev_map() :: #{graffeo:vertex() => graffeo:vertex()}.
 
 -export_type([dist_map/0, prev_map/0]).

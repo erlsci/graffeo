@@ -66,6 +66,49 @@ no_digraph_calls_in_engine_test() ->
     {ok, Bin} = file:read_file("src/graffeo_conn.erl"),
     ?assertEqual(nomatch, binary:match(Bin, <<"digraph:">>)).
 
+is_acyclic_with_selfloop_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, a),
+    G2 = graffeo:add_edge(G1, a, b),
+    ?assertEqual(false, graffeo:is_acyclic(G2)).
+
+cyclic_strong_components_selfloop_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, a),
+    G2 = graffeo:add_edge(G1, a, b),
+    CSCs = graffeo:cyclic_strong_components(G2),
+    ?assertEqual([[a]], CSCs).
+
+reachable_neighbours_overlap_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, b),
+    G2 = graffeo:add_edge(G1, b, c),
+    R = graffeo:reachable_neighbours(G2, [a, b]),
+    ?assert(lists:member(b, R)),
+    ?assert(lists:member(c, R)).
+
+reaching_neighbours_overlap_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, b),
+    G2 = graffeo:add_edge(G1, b, c),
+    R = graffeo:reaching_neighbours(G2, [b, c]),
+    ?assert(lists:member(a, R)),
+    ?assert(lists:member(b, R)).
+
+arborescence_root_non_tree_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, b),
+    G2 = graffeo:add_edge(G1, a, c),
+    G3 = graffeo:add_edge(G2, b, c),
+    ?assertEqual(no, graffeo:arborescence_root(G3)).
+
+subgraph_with_type_opt_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, b),
+    G2 = graffeo:add_edge(G1, b, c),
+    Sub = graffeo:subgraph(G2, [a, b], [{type, inherit}]),
+    ?assertEqual(lists:sort([a, b]), lists:sort(graffeo:vertices(Sub))).
+
 %%% --- helpers ---
 
 pos(X, List) ->

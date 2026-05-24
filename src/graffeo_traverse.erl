@@ -16,10 +16,12 @@ cover in/out/total degree, normalised degree centrality, and top-k.
     top_k_by_degree/4
 ]).
 
+-doc "BFS traversal direction: outgoing, incoming, or both.".
 -type direction() :: out | in | both.
 -type filter() ::
     fun((graffeo:vertex(), graffeo:vertex()) -> boolean())
     | fun((graffeo:vertex(), graffeo:vertex(), graffeo:edge_meta()) -> boolean()).
+-doc "BFS result: vertices paired with their distance from the source.".
 -type bfs_result() :: [{graffeo:vertex(), non_neg_integer()}].
 
 -export_type([direction/0, bfs_result/0]).

@@ -147,7 +147,8 @@ arborescence_root(B, R, Vs) ->
                 [Root] = lists:foldl(F, [], Vs),
                 {yes, Root}
             catch
-                _:_ -> no
+                error:{case_clause, _} -> no;
+                error:{badmatch, _} -> no
             end;
         false ->
             no

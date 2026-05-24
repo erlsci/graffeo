@@ -11,6 +11,7 @@ key-value front matter. Both use `---` delimiters.
 
 -export_type([card/0]).
 
+-doc "Parsed concept card with slug, provenance, and typed relationships.".
 -type card() :: #{
     slug := binary(),
     concept := binary(),
