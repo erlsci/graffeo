@@ -33,9 +33,9 @@ Structurally, it adds a thin seam and a choice of storage. A graph-access
 *behaviour* lets each algorithm be written once and run over any conforming
 **backend**: the immutable, map-backed *value* backend `graffeo_map` (copyable,
 pattern-matchable, message-passable); an ETS-backed, process-owned *handle* backend
-`graffeo_ets` (mutable, implemented over the stdlib `digraph`); and a `dets` on-disk
-backend on the way. The design rationale lives in
-[`docs/architecture.md`](docs/architecture.md).
+`graffeo_ets` (mutable, implemented over the stdlib `digraph`); and a persistent,
+DETS-backed *handle* backend `graffeo_dets` (on disk, survives restarts). The design
+rationale lives in [`docs/architecture.md`](docs/architecture.md).
 
 And it adds the graph-theoretic functions you end up hand-rolling on real projects —
 the ones neither `digraph` nor `digraph_utils` provide:
@@ -106,17 +106,57 @@ If you already have a bare `digraph` handle, `graffeo_ets:wrap/1` lifts it into 
 envelope so the algorithm layer works on it. `unwrap/1` hands the bare handle back
 when you need raw `digraph:*` access.
 
+### Persistent tier (`graffeo_dets` — on-disk, survives restarts)
+
+`graffeo_dets` is the same handle experience as `graffeo_ets`, backed by DETS on disk.
+`new/0` gives an ephemeral graph (just like `graffeo_ets`); `open/1` gives a **named,
+persistent** one that outlives the VM.
+
+```erlang
+%% Ephemeral — identical experience to graffeo_ets, just on disk.
+G = graffeo_dets:new(),
+graffeo_dets:add_edge(G, a, b, #{weight => 1}),
+{Dist, _Prev} = graffeo:dijkstra(G, a),   %% the SAME graffeo:* algorithms
+graffeo_dets:delete(G).                    %% close + remove the files
+```
+
+```erlang
+%% Persistent — build once, reopen later, query without rebuilding.
+G  = graffeo_dets:open(my_graph),
+graffeo_dets:add_edge(G, a, b, #{weight => 1}),
+graffeo_dets:add_edge(G, b, c, #{weight => 2}),
+graffeo_dets:close(G),                     %% flush + keep the files on disk
+
+%% ... a VM restart later ...
+G2 = graffeo_dets:open(my_graph),          %% the data is still there
+{ok, _Order} = graffeo:topsort(G2),
+graffeo_dets:close(G2).
+```
+
+To persist an in-memory graph, `graffeo:copy/2` materialises any graph into an opened
+backend: `graffeo:copy(MapG, graffeo_dets:open(snapshot))`.
+
+**Where files live.** On-disk backends store under a configurable `data_dir`, resolved
+as: an explicit `data_dir` in `sys.config` → `priv/data` (if writable) → a CWD-based
+`graffeo_data/` → the OS cache dir. In a release `priv` is typically read-only, so
+**production should set `data_dir` in `sys.config`**:
+
+```erlang
+%% sys.config
+[{graffeo, [{data_dir, "/var/lib/myapp/graffeo"}]}].
+```
+
 ## Status
 
 **0.1.0 — full stdlib parity, and then some.** graffeo now implements the
 *entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
-every function runs over *both* tiers — the functional map value (default) and
-the ETS-backed handle (`graffeo_ets`). All of the following is implemented and tested (eunit, Common Test + PropEr):
+every function runs over all three backends — the map value (default), the ETS-backed
+handle (`graffeo_ets`), and the DETS on-disk handle (`graffeo_dets`). All of the following is implemented and tested (eunit, Common Test + PropEr):
 
 **Building & access**
 
-- the graph-access behaviour and its two backends — the functional map value
-  (default) and the ETS-backed handle (`graffeo_ets`);
+- the graph-access behaviour and its three backends — the map value (default), the
+  ETS handle (`graffeo_ets`), and the DETS on-disk handle (`graffeo_dets`);
 - vertices and edges with labels and edge metadata; in/out neighbours;
 - handle-tier mutation in one namespace — `add_vertex/2,3`, `add_edge/3,4`,
   `del_vertex/2`, `del_vertices/2`, `del_edge/3`, `del_edges/2`, plus `wrap/1`,
@@ -157,9 +197,12 @@ shortest length, valid path, correct endpoints, and reachability agreement, but
 may pick a different equally-short path than `digraph` when several exist — see
 [`docs/design/`](docs/design/) for why.)
 
-On the roadmap: minimum spanning trees, negative-weight shortest paths
-(Bellman-Ford), a `dets` on-disk backend, and multi-edge support — graffeo
-currently models *simple* directed graphs (at most one edge per ordered pair).
+**0.2.0** added the `graffeo_dets` on-disk backend (build-once / reopen, configurable
+`data_dir`), an edge-induced subgraph (`filter_edges/2`), vertex contraction
+(`contract/2,3`), and `graffeo:copy/2`. On the roadmap: minimum spanning trees,
+negative-weight shortest paths (Bellman-Ford), a `graffeo_mnesia` backend, and
+multi-edge support — graffeo currently models *simple* directed graphs (at most one
+edge per ordered pair).
 Expect the public API to keep moving as these land. The design thinking lives in
 [`docs/design/`](docs/design/).
 

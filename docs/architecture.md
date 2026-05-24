@@ -85,7 +85,7 @@ The backend axis is *storage substrate*, mirroring Erlang's own value/handle spl
 |--------|------|-----------|--------|
 | `graffeo_map` | value | a pair of maps | immutable; ops return a new graph; copyable, pattern-matchable, message-passable |
 | `graffeo_ets` | handle | ETS (via stdlib `digraph`) | mutable, process-owned; ops mutate in place and return `ok` |
-| `graffeo_dets` | handle | DETS (on disk) | *roadmap* — persistent, on-disk |
+| `graffeo_dets` | handle | DETS (on disk) | persistent, on-disk; `new/0` ephemeral, `open/1` named-persistent, `close/1` flush-and-keep |
 
 **`graffeo_map`** stores **dual adjacency** — an out-map and an in-map — so
 `in_neighbours/2` and `in_degree/2` are O(degree) rather than requiring a full scan.
@@ -99,6 +99,19 @@ the way Erlang's own `maps`/`ets`/`dets` do. The wrapper is a feature, not a
 shortcut — `wrap/1` lifts a bare `digraph:graph()` into the envelope so the algorithm
 layer works on a handle you already have, and `unwrap/1` returns the bare handle for
 raw `digraph:*` access. Lifecycle (`new/0`, `delete/1`) stays in graffeo's namespace.
+
+**`graffeo_dets`** is the hand-rolled on-disk backend — there is no stdlib
+DETS-digraph to wrap — mirroring `digraph`'s three-table layout on DETS: a `set`
+vertex table, a `set` edge table keyed by the `{From, To}` pair, and a `bag`
+neighbours table. `new/0` yields an ephemeral graph (auto-named temp files); `open/1`
+a named, **persistent** one that survives a restart; `close/1` flushes and keeps the
+files, `delete/1` removes them. File location is resolved by
+`graffeo_config:data_dir/0` (explicit `sys.config` → `priv/data` if writable → a
+CWD-based `graffeo_data/` → the OS cache dir), so production should set `data_dir` in
+`sys.config` since `priv` is read-only in a release. `graffeo:copy/2` materialises any
+graph into an opened backend — the build-in-memory, persist-to-disk path. Constructive
+algorithms (`subgraph`/`condensation`/`filter_edges`/`contract`) over a DETS graph
+raise `{unsupported_on_backend, …}` for now; derive in memory and `copy/2` the result.
 
 ## Where the algorithms live
 
@@ -169,9 +182,11 @@ returning nonsense.
 
 The value/handle distinction surfaces exactly where construction happens. A
 constructive algorithm (`subgraph`, `condensation`, `filter_edges`, `contract`) over a
-*value* returns a new value. Over a *handle* it returns a **new, owned `graffeo_ets`
-handle** the caller is responsible for releasing with `graffeo_ets:delete/1` — the
-same discipline as the stdlib's own handle types.
+*value* returns a new value. Over an ETS *handle* it returns a **new, owned
+`graffeo_ets` handle** the caller releases with `graffeo_ets:delete/1`. Over a DETS
+handle these constructive ops are unsupported (they raise) — derive in memory and use
+`graffeo:copy/2` to persist the result. This is the same value/handle discipline as
+the stdlib's own handle types.
 
 ## Performance notes
 
@@ -182,8 +197,9 @@ tight loops, the indirection is the thing to profile first.
 
 ## Roadmap
 
-On the way: an edge-induced subgraph (`filter_edges/2`) and vertex contraction
-(`contract/2,3`) — landing now; then minimum spanning trees, negative-weight shortest
-paths (Bellman-Ford), the `graffeo_dets` on-disk backend, and multi-edge support.
-Expect the public API to keep moving until 1.0. Milestone-level design thinking lives
+**Delivered in 0.2.0:** the edge-induced subgraph (`filter_edges/2`), vertex
+contraction (`contract/2,3`), `graffeo:copy/2`, and the `graffeo_dets` on-disk backend.
+On the way: minimum spanning trees, negative-weight shortest paths (Bellman-Ford),
+constructive ops over DETS, a `graffeo_mnesia` distributed/transactional backend, and
+multi-edge support. Expect the public API to keep moving until 1.0. Milestone-level design thinking lives
 under [`docs/design/`](docs/design/).
