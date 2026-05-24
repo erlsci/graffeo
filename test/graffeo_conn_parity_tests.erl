@@ -31,7 +31,7 @@ build_fixture(Edges) ->
         end,
         Edges
     ),
-    DigG = graffeo_digraph:wrap(D),
+    DigG = graffeo_ets:wrap(D),
     {MapG, DigG, D}.
 
 normalize(List) when is_list(List) ->

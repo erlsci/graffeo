@@ -27,7 +27,7 @@ build_fixture(Edges) ->
         end,
         Edges
     ),
-    DigG = graffeo_digraph:wrap(D),
+    DigG = graffeo_ets:wrap(D),
     {MapG, DigG, D}.
 
 normalize(L) -> lists:sort(L).
@@ -143,28 +143,28 @@ sink_vertices_test() ->
 %%% === M2-25: del_vertices ===
 
 del_vertices_test() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, a, b),
-    ok = graffeo_digraph:add_edge(G, b, c),
-    ok = graffeo_digraph:add_edge(G, c, d),
-    ok = graffeo_digraph:del_vertices(G, [b, c]),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, a, b),
+    ok = graffeo_ets:add_edge(G, b, c),
+    ok = graffeo_ets:add_edge(G, c, d),
+    ok = graffeo_ets:del_vertices(G, [b, c]),
     ?assertEqual(2, graffeo:no_vertices(G)),
     ?assertEqual(0, graffeo:no_edges(G)),
     ?assertEqual(lists:sort([a, d]), lists:sort(graffeo:vertices(G))),
-    graffeo_digraph:delete(G),
+    graffeo_ets:delete(G),
     MapG = graffeo:new(),
-    ?assertError({handle_only, del_vertices, graffeo_map}, graffeo_digraph:del_vertices(MapG, [a])).
+    ?assertError({handle_only, del_vertices, graffeo_map}, graffeo_ets:del_vertices(MapG, [a])).
 
 %%% === M2-26: del_edges ===
 
 del_edges_test() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, a, b),
-    ok = graffeo_digraph:add_edge(G, b, c),
-    ok = graffeo_digraph:add_edge(G, c, d),
-    ok = graffeo_digraph:del_edges(G, [{a, b}, {c, d}]),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, a, b),
+    ok = graffeo_ets:add_edge(G, b, c),
+    ok = graffeo_ets:add_edge(G, c, d),
+    ok = graffeo_ets:del_edges(G, [{a, b}, {c, d}]),
     ?assertEqual(1, graffeo:no_edges(G)),
     ?assertEqual([c], graffeo:out_neighbours(G, b)),
-    graffeo_digraph:delete(G),
+    graffeo_ets:delete(G),
     MapG = graffeo:new(),
-    ?assertError({handle_only, del_edges, graffeo_map}, graffeo_digraph:del_edges(MapG, [{a, b}])).
+    ?assertError({handle_only, del_edges, graffeo_map}, graffeo_ets:del_edges(MapG, [{a, b}])).

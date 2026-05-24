@@ -55,7 +55,7 @@ topsort_digraph_test() ->
     digraph:add_vertex(D, c),
     digraph:add_edge(D, a, b),
     digraph:add_edge(D, b, c),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     {ok, Order} = graffeo:topsort(G),
     ?assert(pos(a, Order) < pos(b, Order)),
     ?assert(pos(b, Order) < pos(c, Order)),

@@ -20,8 +20,8 @@ filter_edges_digraph_basic_test() ->
     ?assertEqual(lists:sort([a, b, c]), lists:sort(graffeo:vertices(R))),
     ?assertEqual(2, graffeo:no_edges(R)),
     ?assertEqual({ok, #{label => red}}, graffeo:edge_meta(R, a, b)),
-    graffeo_digraph:delete(R),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(R),
+    graffeo_ets:delete(G).
 
 filter_edges_always_false_test() ->
     G = build_labelled_map(),
@@ -54,8 +54,8 @@ filter_edges_cross_tier_parity_test() ->
         lists:sort(graffeo:vertices(DigR))
     ),
     ?assertEqual(graffeo:no_edges(MapR), graffeo:no_edges(DigR)),
-    graffeo_digraph:delete(DigR),
-    graffeo_digraph:delete(DigG).
+    graffeo_ets:delete(DigR),
+    graffeo_ets:delete(DigG).
 
 filter_edges_isolated_vertex_excluded_test() ->
     G0 = graffeo:new(),
@@ -90,7 +90,7 @@ bfs_arity3_digraph_test() ->
     Vs = [V || {V, _} <- R],
     ?assert(lists:member(a, Vs)),
     ?assert(lists:member(b, Vs)),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(G).
 
 %%% === contract/2,3 ===
 
@@ -104,14 +104,14 @@ contract_map_basic_test() ->
     ?assertEqual(2, graffeo:no_edges(C)).
 
 contract_digraph_basic_test() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, {s1, a}, {s1, b}),
-    ok = graffeo_digraph:add_edge(G, {s2, a}, {s2, c}),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, {s1, a}, {s1, b}),
+    ok = graffeo_ets:add_edge(G, {s2, a}, {s2, c}),
     C = graffeo:contract(G, fun({_S, Slug}) -> Slug end),
     ?assertEqual(lists:sort([a, b, c]), lists:sort(graffeo:vertices(C))),
     ?assertEqual(2, graffeo:no_edges(C)),
-    graffeo_digraph:delete(C),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(C),
+    graffeo_ets:delete(G).
 
 contract_drops_intraclass_test() ->
     G0 = graffeo:new(),
@@ -154,9 +154,9 @@ contract_cross_tier_parity_test() ->
     MapG = graffeo:new(),
     G1 = graffeo:add_edge(MapG, {s1, a}, {s1, b}, #{label => x}),
     G2 = graffeo:add_edge(G1, {s2, a}, {s2, c}, #{label => y}),
-    DigG = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(DigG, {s1, a}, {s1, b}, #{label => x}),
-    ok = graffeo_digraph:add_edge(DigG, {s2, a}, {s2, c}, #{label => y}),
+    DigG = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(DigG, {s1, a}, {s1, b}, #{label => x}),
+    ok = graffeo_ets:add_edge(DigG, {s2, a}, {s2, c}, #{label => y}),
     ClassFun = fun({_S, Slug}) -> Slug end,
     MapC = graffeo:contract(G2, ClassFun),
     DigC = graffeo:contract(DigG, ClassFun),
@@ -165,8 +165,8 @@ contract_cross_tier_parity_test() ->
         lists:sort(graffeo:vertices(DigC))
     ),
     ?assertEqual(graffeo:no_edges(MapC), graffeo:no_edges(DigC)),
-    graffeo_digraph:delete(DigC),
-    graffeo_digraph:delete(DigG).
+    graffeo_ets:delete(DigC),
+    graffeo_ets:delete(DigG).
 
 contract_by_scc_isomorphic_to_condensation_test() ->
     G0 = graffeo:new(),
@@ -193,8 +193,8 @@ build_labelled_map() ->
     graffeo:add_edge(G2, a, c, #{label => red}).
 
 build_labelled_digraph() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, a, b, #{label => red}),
-    ok = graffeo_digraph:add_edge(G, b, c, #{label => blue}),
-    ok = graffeo_digraph:add_edge(G, a, c, #{label => red}),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, a, b, #{label => red}),
+    ok = graffeo_ets:add_edge(G, b, c, #{label => blue}),
+    ok = graffeo_ets:add_edge(G, a, c, #{label => red}),
     G.

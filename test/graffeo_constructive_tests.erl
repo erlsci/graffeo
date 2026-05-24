@@ -19,20 +19,20 @@ builder_empty_like_map_test() ->
     ?assertEqual(1, graffeo:no_edges(E4)).
 
 builder_empty_like_digraph_test() ->
-    G = graffeo_digraph:new(),
-    E = graffeo_digraph:empty_like(G),
+    G = graffeo_ets:new(),
+    E = graffeo_ets:empty_like(G),
     ?assertEqual(0, graffeo:no_vertices(E)),
-    E2 = graffeo_digraph:build_add_vertex(E, x),
+    E2 = graffeo_ets:build_add_vertex(E, x),
     ?assertEqual([x], graffeo:vertices(E2)),
-    E3 = graffeo_digraph:build_add_vertex(E2, y, my_label),
+    E3 = graffeo_ets:build_add_vertex(E2, y, my_label),
     ?assertEqual({ok, my_label}, graffeo:vertex_label(E3, y)),
-    E4 = graffeo_digraph:build_add_edge(E3, x, y, #{weight => 5}),
+    E4 = graffeo_ets:build_add_edge(E3, x, y, #{weight => 5}),
     ?assertEqual(1, graffeo:no_edges(E4)),
-    graffeo_digraph:delete(E4),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(E4),
+    graffeo_ets:delete(G).
 
 builder_behaviour_declared_test() ->
-    {ok, DigSrc} = file:read_file("src/graffeo_digraph.erl"),
+    {ok, DigSrc} = file:read_file("src/graffeo_ets.erl"),
     ?assertNotEqual(nomatch, binary:match(DigSrc, <<"behaviour(graffeo_builder)">>)),
     {ok, MapSrc} = file:read_file("src/graffeo_map.erl"),
     ?assertNotEqual(nomatch, binary:match(MapSrc, <<"behaviour(graffeo_builder)">>)).
@@ -52,18 +52,18 @@ subgraph_map_test() ->
     ?assertEqual(error, graffeo:edge_meta(Sub, c, d)).
 
 subgraph_digraph_test() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, a, b, #{weight => 1}),
-    ok = graffeo_digraph:add_edge(G, b, c, #{weight => 2}),
-    ok = graffeo_digraph:add_edge(G, c, d, #{weight => 3}),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, a, b, #{weight => 1}),
+    ok = graffeo_ets:add_edge(G, b, c, #{weight => 2}),
+    ok = graffeo_ets:add_edge(G, c, d, #{weight => 3}),
     OrigVerts = lists:sort(graffeo:vertices(G)),
     Sub = graffeo:subgraph(G, [a, b, c]),
     ?assertEqual(lists:sort([a, b, c]), lists:sort(graffeo:vertices(Sub))),
     ?assertEqual(2, graffeo:no_edges(Sub)),
     %% MUST-6: prove non-aliasing — deleting result leaves source intact
-    graffeo_digraph:delete(Sub),
+    graffeo_ets:delete(Sub),
     ?assertEqual(OrigVerts, lists:sort(graffeo:vertices(G))),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(G).
 
 %% MUST-3: stdlib parity compares edge set, not just count
 subgraph_stdlib_parity_test() ->
@@ -75,7 +75,7 @@ subgraph_stdlib_parity_test() ->
     digraph:add_edge(D, a, b, my_meta),
     digraph:add_edge(D, b, c, other_meta),
     digraph:add_edge(D, c, d),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     Sub = graffeo:subgraph(G, [a, b, c]),
     StdSub = digraph_utils:subgraph(D, [a, b, c]),
     ?assertEqual(
@@ -86,7 +86,7 @@ subgraph_stdlib_parity_test() ->
     GrEdges = graffeo_edge_pairs(Sub),
     ?assertEqual(lists:sort(StdEdges), lists:sort(GrEdges)),
     digraph:delete(StdSub),
-    graffeo_digraph:delete(Sub),
+    graffeo_ets:delete(Sub),
     digraph:delete(D).
 
 %% MUST-1: subgraph/3 with options
@@ -110,7 +110,7 @@ subgraph_opts_stdlib_parity_test() ->
     digraph:add_vertex(D, a, my_label),
     digraph:add_vertex(D, b),
     digraph:add_edge(D, a, b, my_meta),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     StdSub = digraph_utils:subgraph(D, [a, b], [{keep_labels, false}]),
     GrSub = graffeo:subgraph(G, [a, b], [{keep_labels, false}]),
     ?assertEqual(
@@ -119,7 +119,7 @@ subgraph_opts_stdlib_parity_test() ->
     ),
     ?assertEqual(lists:sort(edge_pairs(StdSub)), lists:sort(graffeo_edge_pairs(GrSub))),
     digraph:delete(StdSub),
-    graffeo_digraph:delete(GrSub),
+    graffeo_ets:delete(GrSub),
     digraph:delete(D).
 
 subgraph_preserves_labels_test() ->
@@ -145,19 +145,19 @@ condensation_map_test() ->
     ?assertEqual(1, graffeo:no_edges(Cond)).
 
 condensation_digraph_test() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, a, b),
-    ok = graffeo_digraph:add_edge(G, b, c),
-    ok = graffeo_digraph:add_edge(G, c, a),
-    ok = graffeo_digraph:add_edge(G, c, d),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, a, b),
+    ok = graffeo_ets:add_edge(G, b, c),
+    ok = graffeo_ets:add_edge(G, c, a),
+    ok = graffeo_ets:add_edge(G, c, d),
     OrigVerts = lists:sort(graffeo:vertices(G)),
     Cond = graffeo:condensation(G),
     ?assertEqual(2, graffeo:no_vertices(Cond)),
     ?assertEqual(1, graffeo:no_edges(Cond)),
     %% MUST-6: prove non-aliasing
-    graffeo_digraph:delete(Cond),
+    graffeo_ets:delete(Cond),
     ?assertEqual(OrigVerts, lists:sort(graffeo:vertices(G))),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(G).
 
 %% MUST-2: compare member-list vertices + edge set, not just counts
 condensation_stdlib_parity_test() ->
@@ -170,7 +170,7 @@ condensation_stdlib_parity_test() ->
     digraph:add_edge(D, b, c),
     digraph:add_edge(D, c, a),
     digraph:add_edge(D, c, d),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     StdCond = digraph_utils:condensation(D),
     GrCond = graffeo:condensation(G),
     StdVerts = lists:sort([lists:sort(V) || V <- digraph:vertices(StdCond)]),
@@ -191,7 +191,7 @@ condensation_stdlib_parity_test() ->
     ),
     ?assertEqual(StdCondEdges, GrCondEdges),
     digraph:delete(StdCond),
-    graffeo_digraph:delete(GrCond),
+    graffeo_ets:delete(GrCond),
     digraph:delete(D).
 
 %%% --- helpers ---

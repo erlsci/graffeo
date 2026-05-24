@@ -31,10 +31,11 @@ right.
 
 Structurally, it adds a thin seam and a choice of storage. A graph-access
 *behaviour* lets each algorithm be written once and run over any conforming
-**backend**; alongside the familiar `digraph`/ETS handle, graffeo ships an
-immutable, map-backed *value* backend (copyable, pattern-matchable,
-message-passable), with a `dets` on-disk backend on the way. The design rationale
-lives in [`docs/architecture.md`](docs/architecture.md).
+**backend**: the immutable, map-backed *value* backend `graffeo_map` (copyable,
+pattern-matchable, message-passable); an ETS-backed, process-owned *handle* backend
+`graffeo_ets` (mutable, implemented over the stdlib `digraph`); and a `dets` on-disk
+backend on the way. The design rationale lives in
+[`docs/architecture.md`](docs/architecture.md).
 
 And it adds the graph-theoretic functions you end up hand-rolling on real projects —
 the ones neither `digraph` nor `digraph_utils` provide:
@@ -83,39 +84,39 @@ Because the graph is a plain value, `G0` still has zero edges after all of the
 above — nothing was mutated, and `G` can be pattern-matched or sent between
 processes like any other term.
 
-### Handle tier (`digraph`/ETS, transparent and mutable)
+### Handle tier (`graffeo_ets` — ETS-backed, mutable)
 
 ```erlang
-%% A mutable handle over digraph — ETS-backed and owned by your process.
+%% A mutable handle, ETS-backed (over stdlib digraph) and owned by your process.
 %% One value, one namespace: build, run algorithms, then clean up.
-G = graffeo_digraph:new(),
-graffeo_digraph:add_edge(G, a, b, #{weight => 1}),
-graffeo_digraph:add_edge(G, b, c, #{weight => 2}),
-graffeo_digraph:add_edge(G, a, c, #{weight => 10}),
-graffeo_digraph:add_edge(G, c, d, #{weight => 3}),
+G = graffeo_ets:new(),
+graffeo_ets:add_edge(G, a, b, #{weight => 1}),
+graffeo_ets:add_edge(G, b, c, #{weight => 2}),
+graffeo_ets:add_edge(G, a, c, #{weight => 10}),
+graffeo_ets:add_edge(G, c, d, #{weight => 3}),
 
 %% The SAME graffeo:* algorithm calls — no wrapping needed.
 {ok, _Order}  = graffeo:topsort(G),
 {Dist, _Prev} = graffeo:dijkstra(G, a),   %% #{a => 0, b => 1, c => 3, d => 6}
 
-graffeo_digraph:delete(G).   %% lifecycle stays in graffeo's namespace
+graffeo_ets:delete(G).   %% lifecycle stays in graffeo's namespace
 ```
 
-If you already have a bare `digraph` handle, `graffeo_digraph:wrap/1` lifts it
-into the envelope so the algorithm layer works on it. `unwrap/1` hands the bare
-handle back when you need raw `digraph:*` access.
+If you already have a bare `digraph` handle, `graffeo_ets:wrap/1` lifts it into the
+envelope so the algorithm layer works on it. `unwrap/1` hands the bare handle back
+when you need raw `digraph:*` access.
 
 ## Status
 
 **0.1.0 — full stdlib parity, and then some.** graffeo now implements the
 *entire* `digraph` and `digraph_utils` algorithm surface, plus weighted A\*, and
 every function runs over *both* tiers — the functional map value (default) and
-the `digraph`/ETS handle. All of the following is implemented and tested (eunit, Common Test + PropEr):
+the ETS-backed handle (`graffeo_ets`). All of the following is implemented and tested (eunit, Common Test + PropEr):
 
 **Building & access**
 
 - the graph-access behaviour and its two backends — the functional map value
-  (default) and the `digraph`/ETS handle;
+  (default) and the ETS-backed handle (`graffeo_ets`);
 - vertices and edges with labels and edge metadata; in/out neighbours;
 - handle-tier mutation in one namespace — `add_vertex/2,3`, `add_edge/3,4`,
   `del_vertex/2`, `del_vertices/2`, `del_edge/3`, `del_edges/2`, plus `wrap/1`,

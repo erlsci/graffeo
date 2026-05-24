@@ -142,7 +142,7 @@ build_both(Edges) ->
         end,
         Edges
     ),
-    DigraphG = graffeo_digraph:wrap(D),
+    DigraphG = graffeo_ets:wrap(D),
     {MapG, DigraphG, D}.
 
 is_valid_topsort(G, Order) ->

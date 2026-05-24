@@ -1,4 +1,4 @@
--module(graffeo_digraph_tests).
+-module(graffeo_ets_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -8,7 +8,7 @@ digraph_wrap_test() ->
     digraph:add_vertex(D, a),
     digraph:add_vertex(D, b),
     digraph:add_edge(D, a, b),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual(lists:sort([a, b]), lists:sort(graffeo:vertices(G))),
     ?assertEqual([b], graffeo:out_neighbours(G, a)),
     digraph:delete(D).
@@ -22,7 +22,7 @@ digraph_read_parity_test() ->
     digraph:add_edge(D, a, b),
     digraph:add_edge(D, b, c),
     digraph:add_edge(D, a, c),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual(
         lists:sort(digraph:vertices(D)),
         lists:sort(graffeo:vertices(G))
@@ -47,7 +47,7 @@ digraph_edge_meta_test() ->
     digraph:add_vertex(D, x),
     digraph:add_vertex(D, y),
     digraph:add_edge(D, x, y, #{weight => 5}),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual({ok, #{weight => 5}}, graffeo:edge_meta(G, x, y)),
     ?assertEqual(error, graffeo:edge_meta(G, y, x)),
     digraph:delete(D).
@@ -56,13 +56,13 @@ digraph_edge_meta_test() ->
 digraph_vertex_label_test() ->
     D = digraph:new(),
     digraph:add_vertex(D, v1, my_label),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual({ok, my_label}, graffeo:vertex_label(G, v1)),
     ?assertEqual(error, graffeo:vertex_label(G, nonexistent)),
     digraph:delete(D).
 
 %% new/0 + add_edge smoke test
 digraph_new_add_test() ->
-    G = graffeo_digraph:new(),
+    G = graffeo_ets:new(),
     ?assertEqual(0, graffeo:no_vertices(G)),
     ?assertEqual(0, graffeo:no_edges(G)).

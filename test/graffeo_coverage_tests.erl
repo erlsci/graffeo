@@ -9,7 +9,7 @@ digraph_facade_vertices_test() ->
     D = digraph:new(),
     digraph:add_vertex(D, a),
     digraph:add_vertex(D, b),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual(lists:sort([a, b]), lists:sort(graffeo:vertices(G))),
     ?assertEqual(2, graffeo:no_vertices(G)),
     ?assertEqual(0, graffeo:no_edges(G)),
@@ -20,7 +20,7 @@ digraph_facade_edges_test() ->
     digraph:add_vertex(D, x),
     digraph:add_vertex(D, y),
     digraph:add_edge(D, x, y, #{weight => 7}),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual([y], graffeo:out_neighbours(G, x)),
     ?assertEqual([x], graffeo:in_neighbours(G, y)),
     ?assertEqual(1, graffeo:out_degree(G, x)),
@@ -34,29 +34,29 @@ digraph_facade_edges_test() ->
 digraph_facade_vertex_label_test() ->
     D = digraph:new(),
     digraph:add_vertex(D, k, some_label),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual({ok, some_label}, graffeo:vertex_label(G, k)),
     ?assertEqual(error, graffeo:vertex_label(G, nonexistent)),
     digraph:delete(D).
 
-%%% --- graffeo_digraph builder functions ---
+%%% --- graffeo_ets builder functions ---
 
 digraph_builder_test() ->
-    G = graffeo_digraph:new(),
-    ok = graffeo_digraph:add_edge(G, a, b),
-    ok = graffeo_digraph:add_edge(G, b, a, #{weight => 5}),
-    ok = graffeo_digraph:add_vertex(G, b, my_label),
+    G = graffeo_ets:new(),
+    ok = graffeo_ets:add_edge(G, a, b),
+    ok = graffeo_ets:add_edge(G, b, a, #{weight => 5}),
+    ok = graffeo_ets:add_vertex(G, b, my_label),
     Verts = lists:sort(graffeo:vertices(G)),
     ?assertEqual([a, b], Verts),
     ?assertEqual(2, graffeo:no_edges(G)),
     ?assertEqual({ok, my_label}, graffeo:vertex_label(G, b)),
     ?assertEqual({ok, #{weight => 5}}, graffeo:edge_meta(G, b, a)),
-    graffeo_digraph:delete(G).
+    graffeo_ets:delete(G).
 
 digraph_edge_meta_not_found_test() ->
     D = digraph:new(),
     digraph:add_vertex(D, a),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual(error, graffeo:edge_meta(G, a, b)),
     digraph:delete(D).
 
@@ -107,7 +107,7 @@ dijkstra_digraph_test() ->
     digraph:add_vertex(D, c),
     digraph:add_edge(D, a, b, #{weight => 3}),
     digraph:add_edge(D, b, c, #{weight => 4}),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     {Dist, _} = graffeo:dijkstra(G, a),
     ?assertEqual(0, maps:get(a, Dist)),
     ?assertEqual(3, maps:get(b, Dist)),
@@ -119,7 +119,7 @@ dijkstra_custom_cost_digraph_test() ->
     digraph:add_vertex(D, a),
     digraph:add_vertex(D, b),
     digraph:add_edge(D, a, b, #{weight => 10}),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     CostFun = fun(#{weight := W}) -> W * 2 end,
     {Dist, _} = graffeo:dijkstra(G, a, #{cost => CostFun}),
     ?assertEqual(20, maps:get(b, Dist)),
@@ -134,7 +134,7 @@ bfs_digraph_test() ->
     digraph:add_vertex(D, c),
     digraph:add_edge(D, a, b),
     digraph:add_edge(D, b, c),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     Result = graffeo:bfs(G, a),
     ?assertEqual({a, 0}, lists:keyfind(a, 1, Result)),
     ?assertEqual({b, 1}, lists:keyfind(b, 1, Result)),
@@ -159,7 +159,7 @@ degree_digraph_test() ->
     digraph:add_vertex(D, a),
     digraph:add_vertex(D, b),
     digraph:add_edge(D, a, b),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual(1, graffeo:degree(G, a)),
     ?assertEqual(1, graffeo:degree(G, b)),
     digraph:delete(D).
@@ -171,7 +171,7 @@ top_k_digraph_test() ->
     digraph:add_vertex(D, c),
     digraph:add_edge(D, a, b),
     digraph:add_edge(D, a, c),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     [{a, 2}] = graffeo:top_k_by_degree(G, 1),
     digraph:delete(D).
 
@@ -183,7 +183,7 @@ topsort_digraph_cycle_test() ->
     digraph:add_vertex(D, b),
     digraph:add_edge(D, a, b),
     digraph:add_edge(D, b, a),
-    G = graffeo_digraph:wrap(D),
+    G = graffeo_ets:wrap(D),
     ?assertEqual(false, graffeo:topsort(G)),
     digraph:delete(D).
 
@@ -200,12 +200,12 @@ map_vertex_label_missing_test() ->
 %%% --- F-24: clear error for Tier-1 op on Tier-2 graph ---
 
 tier1_op_on_tier2_clear_error_test() ->
-    G = graffeo_digraph:new(),
-    ?assertError({tier1_only, add_vertex, graffeo_digraph}, graffeo:add_vertex(G, a)),
-    ?assertError({tier1_only, add_vertex, graffeo_digraph}, graffeo:add_vertex(G, a, label)),
-    ?assertError({tier1_only, add_edge, graffeo_digraph}, graffeo:add_edge(G, a, b)),
+    G = graffeo_ets:new(),
+    ?assertError({tier1_only, add_vertex, graffeo_ets}, graffeo:add_vertex(G, a)),
+    ?assertError({tier1_only, add_vertex, graffeo_ets}, graffeo:add_vertex(G, a, label)),
+    ?assertError({tier1_only, add_edge, graffeo_ets}, graffeo:add_edge(G, a, b)),
     ?assertError(
-        {tier1_only, add_edge, graffeo_digraph}, graffeo:add_edge(G, a, b, #{weight => 1})
+        {tier1_only, add_edge, graffeo_ets}, graffeo:add_edge(G, a, b, #{weight => 1})
     ).
 
 %%% --- graffeo_path edge_cost with missing meta ---

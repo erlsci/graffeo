@@ -129,7 +129,7 @@ build_digraph_graph(Edges) ->
         end,
         Edges
     ),
-    {graffeo_digraph:wrap(D), D}.
+    {graffeo_ets:wrap(D), D}.
 
 assert_valid_topsort(G, Order) ->
     Pos = maps:from_list(lists:zip(Order, lists:seq(1, length(Order)))),

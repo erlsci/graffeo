@@ -14,7 +14,7 @@ correctly for both.
 
 **Tier-2 lifecycle note:** constructive algorithms over a handle
 graph create a **new** `digraph` handle the caller owns and must
-`graffeo_digraph:delete/1`.
+`graffeo_ets:delete/1`.
 """.
 
 -doc "A fresh, empty graph of the same backend as `G`.".

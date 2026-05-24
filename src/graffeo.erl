@@ -130,7 +130,7 @@ new() ->
 Add a vertex with the default label.
 
 Tier-1 operation — only valid on map-backed graphs.
-For handle-backed graphs, use `graffeo_digraph:add_vertex/2`.
+For handle-backed graphs, use `graffeo_ets:add_vertex/2`.
 """.
 -spec add_vertex(graph(), vertex()) -> graph().
 add_vertex(#graffeo{backend = graffeo_map, ref = Ref}, V) ->
@@ -142,7 +142,7 @@ add_vertex(#graffeo{backend = Backend}, _V) ->
 Add a vertex with a label.
 
 Tier-1 operation — only valid on map-backed graphs.
-For handle-backed graphs, use `graffeo_digraph:add_vertex/3`.
+For handle-backed graphs, use `graffeo_ets:add_vertex/3`.
 """.
 -spec add_vertex(graph(), vertex(), label()) -> graph().
 add_vertex(#graffeo{backend = graffeo_map, ref = Ref}, V, Label) ->
@@ -154,7 +154,7 @@ add_vertex(#graffeo{backend = Backend}, _V, _Label) ->
 Add an edge with default metadata.
 
 Tier-1 operation — only valid on map-backed graphs.
-For handle-backed graphs, use `graffeo_digraph:add_edge/3`.
+For handle-backed graphs, use `graffeo_ets:add_edge/3`.
 """.
 -spec add_edge(graph(), vertex(), vertex()) -> graph().
 add_edge(#graffeo{backend = graffeo_map, ref = Ref}, From, To) ->
@@ -166,7 +166,7 @@ add_edge(#graffeo{backend = Backend}, _From, _To) ->
 Add an edge with metadata (weight, label).
 
 Tier-1 operation — only valid on map-backed graphs.
-For handle-backed graphs, use `graffeo_digraph:add_edge/4`.
+For handle-backed graphs, use `graffeo_ets:add_edge/4`.
 """.
 -spec add_edge(graph(), vertex(), vertex(), edge_meta()) -> graph().
 add_edge(#graffeo{backend = graffeo_map, ref = Ref}, From, To, Meta) ->
@@ -395,7 +395,7 @@ Returns a new graph (same backend) with only the listed vertices
 and edges where both endpoints are in the list.
 
 **Tier-2 lifecycle:** over a handle graph, the result is a new
-handle the caller must `graffeo_digraph:delete/1`.
+handle the caller must `graffeo_ets:delete/1`.
 """.
 -spec subgraph(graph(), [vertex()]) -> graph().
 subgraph(G, SubVs) ->
@@ -420,7 +420,7 @@ Each vertex in the result is the member-list of a SCC. An edge
 exists where any cross-component edge exists in the original.
 
 **Tier-2 lifecycle:** over a handle graph, the result is a new
-handle the caller must `graffeo_digraph:delete/1`.
+handle the caller must `graffeo_ets:delete/1`.
 """.
 -spec condensation(graph()) -> graph().
 condensation(#graffeo{backend = B, ref = R} = G) ->
@@ -433,7 +433,7 @@ Keeps edges where `Pred(From, To, Meta)` returns `true`, preserving
 metadata. Only vertices incident to a kept edge appear in the result.
 
 **Tier-2 lifecycle:** over a handle graph, the result is a new
-handle the caller must `graffeo_digraph:delete/1`.
+handle the caller must `graffeo_ets:delete/1`.
 """.
 -spec filter_edges(graph(), fun((vertex(), vertex(), edge_meta()) -> boolean())) ->
     graph().
@@ -447,7 +447,7 @@ Result vertices are the distinct `ClassFun(V)` values. Edges between
 different classes are induced; intra-class edges are dropped.
 
 **Tier-2 lifecycle:** over a handle graph, the result is a new
-handle the caller must `graffeo_digraph:delete/1`.
+handle the caller must `graffeo_ets:delete/1`.
 """.
 -spec contract(graph(), fun((vertex()) -> term())) -> graph().
 contract(#graffeo{backend = B, ref = R} = G, ClassFun) ->

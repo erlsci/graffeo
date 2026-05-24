@@ -79,7 +79,7 @@ astar_cross_tier_test() ->
     digraph:add_edge(D, a, b, #{weight => 3}),
     digraph:add_edge(D, b, c, #{weight => 4}),
     digraph:add_edge(D, a, c, #{weight => 10}),
-    DigG = graffeo_digraph:wrap(D),
+    DigG = graffeo_ets:wrap(D),
     DigResult = graffeo:astar(DigG, a, c),
     ?assertEqual(MapResult, DigResult),
     digraph:delete(D).

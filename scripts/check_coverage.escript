@@ -13,7 +13,7 @@
     graffeo_backend,
     graffeo_builder,
     graffeo_conn,
-    graffeo_digraph,
+    graffeo_ets,
     graffeo_map,
     graffeo_path,
     graffeo_traverse

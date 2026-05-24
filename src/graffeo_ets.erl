@@ -1,6 +1,10 @@
--module(graffeo_digraph).
+-module(graffeo_ets).
 -moduledoc """
-Tier-2 handle backend: transparent over stdlib `digraph`.
+ETS-backed, process-owned, mutable handle backend.
+
+Implemented over the stdlib `digraph` module (which uses ETS
+internally). `wrap/1` accepts a bare `digraph:graph()` handle and
+`unwrap/1` returns it for raw `digraph:*` access.
 
 Construction, mutation, and lifecycle operate on the opaque
 `graffeo:graph()` envelope. Presents a **simple directed graph**
