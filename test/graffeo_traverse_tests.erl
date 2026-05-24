@@ -61,6 +61,22 @@ degree_centrality_test() ->
     ?assertEqual(2, length(TopK)),
     [_, _] = TopK.
 
+traverse_in_out_degree_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_edge(G0, a, b),
+    G2 = graffeo:add_edge(G1, a, c),
+    Ref = graffeo:extract_ref(graffeo_map, G2),
+    ?assertEqual(0, graffeo_traverse:in_degree(graffeo_map, Ref, a)),
+    ?assertEqual(2, graffeo_traverse:out_degree(graffeo_map, Ref, a)),
+    ?assertEqual(1, graffeo_traverse:in_degree(graffeo_map, Ref, b)).
+
+bfs_arity3_filter_no_edge_test() ->
+    G0 = graffeo:new(),
+    G1 = graffeo:add_vertex(G0, a),
+    G2 = graffeo:add_vertex(G1, b),
+    R = graffeo:bfs(G2, a, #{filter => fun(_F, _T, _M) -> true end}),
+    ?assertEqual([{a, 0}], R).
+
 %% F-14: reverse traversal first-class (direction => in)
 reverse_traversal_test() ->
     %%   a → b → c → d
